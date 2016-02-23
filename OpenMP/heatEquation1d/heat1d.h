@@ -15,7 +15,7 @@
 #define NO_STEPS (TEND/DT) // No. of time steps
 #define XGRID 4 // No. of subdomains in the x-direction
 #define OMP_THREADS XGRID // No. of OMP threads
-#define SNX (NX/XGRID)+2 // subregion size + BC cells
+#define SNX (NX/XGRID) // subregion size
 #define PI 3.1415926535897932f
 
 /* Declare functions */

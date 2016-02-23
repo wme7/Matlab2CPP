@@ -31,21 +31,20 @@ int main() {
     #pragma omp barrier
 
     // Request computer current time
-    t = clock();
-
+    t = clock(); 
+    
     // Solver Loop 
-    //    for (step = 0; step < NO_STEPS; step++) {
-    //      if (step%100==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
-
-      // Compute stencil
-      //      Call_Laplace(&t_u,&t_un);
-
+    for (step = 0; step < NO_STEPS; step++) {
+  //if (step%100==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
       // Communicate Boundaries
-      //      Call_Comms(tid,&t_u,&t_un);
-
+      //Call_Comms(tid,&t_u,&t_un);
+      
+      // Compute stencil
+      //Call_Laplace(&t_u,&t_un);
+      
       // Update solution
-      //      Call_Update(1,tid,&u,&un)
-    //    }
+      //Call_Update(1,tid,&u,&un);
+    }
 
     // Copy threads data to global data variable
     Call_Update(tid,&h_u,&t_u);
