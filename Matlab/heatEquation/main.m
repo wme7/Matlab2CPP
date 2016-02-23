@@ -16,23 +16,12 @@ KX =(C*DT/(DX*DX)); % numerical conductivity
 KY =(C*DT/(DY*DY)); % numerical conductivity
 NO_STEPS =(TEND/DT); % No. of time steps
 
-u0= zeros(NY*NX,1);
+u = zeros(NY*NX,1);
 
-for j = 1:NY
-    for i = 1:NX
-        o = i+NX*(j-1);
-        % but ...
-        if (i==1),  u0(o) = 0.0; end
-        if (j==1),  u0(o) = 0.0; end
-        if (i==NX), u0(o) = 1.0; end
-        if (j==NY), u0(o) = 1.0; end
-    end
-end
+% set initial condition, u = u0
+u = Set_IC(NY,NX,u); 
 
-u=u0;
-
-%figure(1); surf(reshape(u0,[NY,NX]));
-
+tic;
 for step=0:2:NO_STEPS
     if mod(step,100)==0, fprintf('Step %d of %d\n',step,NO_STEPS); end
 
@@ -45,5 +34,6 @@ for step=0:2:NO_STEPS
     % update 
     %u = un;
 end
+disp(toc);
 
 figure(2); surf(reshape(u,[NY,NX]));

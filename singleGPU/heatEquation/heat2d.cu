@@ -30,9 +30,7 @@ __global__ void SetIC_onDevice(float *u){
   // threads id 
   int i = threadIdx.x + blockIdx.x*blockDim.x;
   int j = threadIdx.y + blockIdx.y*blockDim.y;
-  int o = i + NX*j;
-
-  u[o] = 0.0;
+  int o = i+NX*j; u[o] = 0.0;
   // but ...
   if (i==0)    u[o] = 0.0;
   if (j==0)    u[o] = 0.0;
@@ -95,7 +93,7 @@ void Manage_Comms(int phase, int tid, float **h_u, float **d_u) {
 __global__ void Update_Domain(float *u,float *un){
   int i = threadIdx.x + blockIdx.x*blockDim.x;
   int j = threadIdx.y + blockIdx.y*blockDim.y;
-  u[i+NX*j] = un[i+NX*j];
+  int o = i+NX*j; u[o] = un[o];
 }
 
 void Call_Update(float **u, float **un){

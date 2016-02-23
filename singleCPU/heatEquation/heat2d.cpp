@@ -18,11 +18,10 @@ void Manage_Memory(int phase, int tid, float **h_u, float **h_un){
 
 void Set_IC(float *u0){
   // set all domain equal to zero
+  int o;
   for (int j = 0; j < NY; j++) {
     for (int i = 0; i < NX; i++) {
-      int o = i+NX*j;
-
-      u0[o] = 0.0;
+      o = i+NX*j;  u0[o] = 0.0;
       // but ...
       if (i==0)    u0[o] = 0.0;
       if (j==0)    u0[o] = 0.0; 
@@ -39,14 +38,15 @@ void Call_Init(float **u0){
 
 void Laplace2d(float *u,float *un){
   // Using (i,j) = [i+N*j] indexes
+  int o, n, s, e, w;
   for (int j = 0; j < NY; j++) {
     for (int i = 0; i < NX; i++) {
 
-        int o =  i + NX*j ; // node( j,i )     n
-	int n = i+NX*(j+1); // node(j+1,i)     |
-	int s = i+NX*(j-1); // node(j-1,i)  w--o--e
-	int e = (i+1)+NX*j; // node(j,i+1)     |
-	int w = (i-1)+NX*j; // node(j,i-1)     s
+        o =  i + NX*j ; // node( j,i )     n
+	n = i+NX*(j+1); // node(j+1,i)     |
+	s = i+NX*(j-1); // node(j-1,i)  w--o--e
+	e = (i+1)+NX*j; // node(j,i+1)     |
+	w = (i-1)+NX*j; // node(j,i-1)     s
 
 	// only update "interior" nodes
 	if(i>0 && i<NX-1 && j>0 && j<NY-1) {
