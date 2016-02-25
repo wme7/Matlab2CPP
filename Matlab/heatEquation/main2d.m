@@ -19,17 +19,17 @@ NO_STEPS =(TEND/DT); % No. of time steps
 u = zeros(NY*NX,1);
 
 % set initial condition, u = u0
-u = Set_IC(NY,NX,u); 
+u = Set_IC2d(NY,NX,u); 
 
 tic;
 for step=0:2:NO_STEPS
     if mod(step,100)==0, fprintf('Step %d of %d\n',step,NO_STEPS); end
 
     % Compute Laplace stencil
-    un = Call_Laplace(u,KX,KY,NX,NY);
+    un = Call_Laplace2d(u,KX,KY,NX,NY);
 
     % Compute Laplace stencil (again)
-    u = Call_Laplace(un,KX,KY,NX,NY);
+    u = Call_Laplace2d(un,KX,KY,NX,NY);
     
     % update 
     %u = un;

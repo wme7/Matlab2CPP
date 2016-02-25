@@ -1,4 +1,4 @@
-function un = Call_Laplace(u,KX,KY,NX,NY)
+function un = Call_Laplace2d(u,KX,KY,NX,NY)
 
 un= zeros(NY*NX,1);
 

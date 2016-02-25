@@ -4,7 +4,7 @@
 void Manage_Memory(int phase, int tid, float **h_u, float **t_u, float **t_un){
   if (phase==0) {
     // Allocate domain variable on host (master thread)
-    *h_u = (float*)malloc(NX*sizeof(float));
+    *h_u = (float*)malloc((NX+2)*sizeof(float));
    }
   if (phase==1) {
     // Allocate subdomain variables on host (All Threads)
@@ -22,43 +22,40 @@ void Manage_Memory(int phase, int tid, float **h_u, float **t_u, float **t_un){
   }
 }
 
-void Manage_Comms(int tid, float *h_u, float *t_u){
-  // Communicate boundaries
-  if (tid==0) h_u[tid*SNX] = t_u[1]; 
-  if (tid==1) h_u[tid*SNX] = t_u[1];
-  if (tid==2) h_u[tid*SNX] = t_u[1];
-  if (tid==3) h_u[tid*SNX] = t_u[1];
+void Boundaries(int tid, float *h_u, float *t_u){
+  // Communicate BCs from local thread to global domain
+  h_u[ 1 +tid*SNX] = t_u[ 1 ];
+  h_u[SNX+tid*SNX] = t_u[SNX];
+  // Communicate BCs from global domain to local thread
+  t_u[  0  ] = h_u[  0  +tid*SNX];
+  t_u[SNX+1] = h_u[SNX+1+tid*SNX];
 }
 
-void Set_IC(int tid, float *u0){
-  // Set domain initial condition 
-  if (tid==0) {
-    for (int i = 0; i < SNX; i++) {
-      u0[i+1] = 0.25;
-      // but ...
-      if (i==0)     u0[i+1] = 0.0;
-    }
+void Manage_Comms(int tid, float **h_u, float **t_u){
+  // Manage boundary comunications
+  Boundaries(tid,*h_u,*t_u);
+}
+
+
+void Set_IC(int phase, int tid, float *u0, float *ut0){
+  if (phase==0) {
+    // Set initial condition in global domain
+    for (int i = 1; i < NX+1; i++) {u0[i] = 0.0;}  u0[0]=0.0;  u0[NX+1]=1.0;
   }
-  if (tid>0 && tid<OMP_THREADS-1) {
-    for (int i = 0; i < SNX; i++) {
-      u0[i+1] = 0.50;
-    } 
-  }
-  if (tid==OMP_THREADS-1) {
-    for (int i = 0; i < SNX; i++) {
-      u0[i+1] = 0.75;
-      // but ...
-      if (i==SNX-1) u0[i+1] = 1.0;
+  if (phase==1) {
+    // Set domain initial condition in local threads
+    for (int i = 0; i < SNX+2; i++) {
+      ut0[i] = 0.0;
     }
   }
 }
 
-void Call_Init(int tid, float **u0){
+void Call_Init(int phase, int tid, float **u0, float **ut0){
   // Load the initial condition
-  Set_IC(tid,*u0);
+  Set_IC(phase,tid,*u0,*ut0);
 }
 
-void Laplace1d(float *u,float *un){
+void Laplace1d(int tid, float *u,float *un){
   // Using (i,j) = [i+N*j] indexes
   int o, l, r;
   for (int i = 0; i < SNX+2; i++) {
@@ -76,16 +73,16 @@ void Laplace1d(float *u,float *un){
   }
 }
 
-void Call_Laplace(float **u, float **un){
+void Call_Laplace(int tid, float **u, float **un){
   // Produce one iteration of the laplace operator
-  Laplace1d(*u,*un);
+  Laplace1d(tid,*u,*un);
 }
 
 void Update_Domain(int tid, float *h_u, float *t_u){
   // Explicitly copy data arrays
   if (DEBUG) printf("Copying thread data into the whole domain (thread %d)\n",tid); 
   for (int i = 0; i < SNX; i++) {
-    h_u[i+tid*SNX] = t_u[i+1];
+    h_u[i+1+tid*SNX] = t_u[i+1];
   }
 }
 
@@ -98,7 +95,7 @@ void Save_Results(float *u){
   // print result to txt file
   FILE *pFile = fopen("result.txt", "w");
   if (pFile != NULL) {
-    for (int i = 0; i < NX; i++) {
+    for (int i = 0; i < NX+2; i++) {
       fprintf(pFile, "%d\t %g\n",i,u[i]);
     }
     fclose(pFile);

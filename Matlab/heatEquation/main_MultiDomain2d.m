@@ -33,11 +33,23 @@ u1 = zeros((SNY+2)*(SNX+2),1);
 u2 = zeros((SNY+2)*(SNX+2),1);
 u3 = zeros((SNY+2)*(SNX+2),1);
 
+% Set IC
+for j = 1:NY
+    for i = 1:NX
+        o=(i+1)+NX*j; u0(o) = 0.50;
+        % but ...
+        if (i==1),  u0(o) = 0.0; end
+        if (j==1),  u0(o) = 0.0; end
+        if (j==NX), u0(o) = 1.0; end
+        if (j==NY), u0(o) = 1.0; end
+    end
+end
+
 % Set IC, u = u#
-u0 = Set_IC_MultiDomain(0,u0,SNY,SNX,OMP_THREADS); 
-u1 = Set_IC_MultiDomain(1,u1,SNY,SNX,OMP_THREADS); 
-u2 = Set_IC_MultiDomain(2,u2,SNY,SNX,OMP_THREADS); 
-u3 = Set_IC_MultiDomain(3,u3,SNY,SNX,OMP_THREADS); 
+u0 = Set_IC_MultiDomain1d(0,u0,SNY,SNX,OMP_THREADS); 
+u1 = Set_IC_MultiDomain1d(1,u1,SNY,SNX,OMP_THREADS); 
+u2 = Set_IC_MultiDomain1d(2,u2,SNY,SNX,OMP_THREADS); 
+u3 = Set_IC_MultiDomain1d(3,u3,SNY,SNX,OMP_THREADS); 
 
 %figure(1); surf(reshape(u0,[SNX,SNY]))
 
@@ -45,7 +57,7 @@ for step=0:2:NO_STEPS
     if mod(step,100)==0, fprintf('Step %d of %d\n',step,NO_STEPS); end
 
     % Communicate boundaries
-	Call_Comms(0,u,u0,SNY,SNX,NY,NX)
+	Call_Comms(0,u,u0,SNY,SNX,NY,NX);
     
     % Compute Laplace stencil
     un = Call_Laplace(u,KX,KY,NX,NY);

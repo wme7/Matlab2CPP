@@ -1,4 +1,4 @@
-function u = Call_Update(tid,u,ut,SNY,SNX,NY,NX)
+function u = Call_Update2d(tid,u,ut,SNY,SNX,NY,NX)
 
 for j = 1:SNY;
     for i = 1:SNX;           
