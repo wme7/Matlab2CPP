@@ -12,7 +12,7 @@ int main() {
   // Auxiliary variables
   int tid;
 
-  // Initialize memory for h_u 
+  // Initialize memory only for u_l
   Manage_Memory(0,0,&h_u,&h_ul,&d_u,&d_un);
  
   // Set number of threads
@@ -25,7 +25,7 @@ int main() {
     tid = omp_get_thread_num(); // tid = 0,1,2,...,NO_GPU-1
     printf("this is thread %d\n",tid);
 
-    // Allocate t_u and t_un for each tid
+    // Allocate u_l, d_u and d_un for each tid
     Manage_Memory(1,tid,&h_u,&h_ul,&d_u,&d_un);
 
     // Set Initial Condition 
@@ -33,7 +33,7 @@ int main() {
     #pragma omp barrier
     
     // copy device data back to local domains
-    Manage_Comms(2,tid,&h_ul,&d_u);
+    Manage_Comms(1,tid,&h_ul,&d_u);
     
     // write local domians into global domain
     Call_Update(tid,&h_u,&h_ul);
