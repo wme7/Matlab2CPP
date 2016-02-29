@@ -4,9 +4,9 @@
 #include <omp.h>
 
 #define DEBUG 1  // Display all error messages
-#define NX 1024  // number of cells in the x-direction
+#define NX 1200  // number of cells in the x-direction
 #define NO_GPU 2 // No. of GPUs, OMP threads and sub-domains
-#define SNX 512  //(NX/NO_GPU) // sub-domain size
+#define SNX (NX/NO_GPU) // sub-domain size
 
 /* Declare functions */
 void Manage_Memory(int phase, int tid, float **h_u, float **h_ul, float **d_u, float **d_un);

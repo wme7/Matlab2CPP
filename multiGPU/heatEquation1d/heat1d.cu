@@ -1,53 +1,55 @@
 
 #include "heat1d.h"
 
-void Manage_Memory(int phase, int tid, float **h_u, float **t_u, float **t_un){
+void Manage_Memory(int phase, int tid, float **h_u, float **h_ul, float **d_u, float **d_un){
   cudaError_t Error;
   if (phase==0) {
-    // Allocate domain variable on host (master thread)
+    // Allocate domain on host
     *h_u = (float*)malloc((NX+2)*sizeof(float));
    }
   if (phase==1) {
-    // Allocate subdomain variables on host (All Threads)
+    // Allocate local domain variable on host
+    *h_ul = (float*)malloc((SNX+2)*sizeof(float));
+    // Allocate local domain variable on device
     Error = cudaSetDevice(tid);
     if (DEBUG) printf("CUDA error (cudaSetDevice) in thread %d = %s\n",tid,cudaGetErrorString(Error));
-    //*t_u = (float*)malloc((SNX+2)*sizeof(float));
-    Error = cudaMalloc((void**)t_u,(SNX+2)*sizeof(float));
-    if (DEBUG) printf("CUDA error (cudaMalloc t_u) in thread %d = %s\n",tid,cudaGetErrorString(Error));
-    Error = cudaMalloc((void**)t_un,(SNX+2)*sizeof(float));
-    if (DEBUG) printf("CUDA error (cudaMalloc t_un) in thread %d = %s\n",tid,cudaGetErrorString(Error));
-    //*t_un= (float*)malloc((SNX+2)*sizeof(float));
+    Error = cudaMalloc((void**)d_u,(SNX+2)*sizeof(float));
+    if (DEBUG) printf("CUDA error (cudaMalloc d_u) in thread %d = %s\n",tid,cudaGetErrorString(Error));
+    Error = cudaMalloc((void**)d_un,(SNX+2)*sizeof(float));
+    if (DEBUG) printf("CUDA error (cudaMalloc d_un) in thread %d = %s\n",tid,cudaGetErrorString(Error));
    }
   if (phase==2) {
-    // Free the local domain variables (All thread)
-    Error = cudaFree(*t_u);
-    if (DEBUG) printf("CUDA error (cudaFree t_u) in thread %d = %s\n",tid,cudaGetErrorString(Error));
-    Error = cudaFree(*t_un);
-    if (DEBUG) printf("CUDA Error (cudaFree t_un) in thread %d = %s\n",tid,cudaGetErrorString(Error));
+    // Free local domain in on host
+    free(*h_ul);
+    // Free local domain variable on device
+    Error = cudaFree(*d_u);
+    if (DEBUG) printf("CUDA error (cudaFree d_u) in thread %d = %s\n",tid,cudaGetErrorString(Error));
+    Error = cudaFree(*d_un);
+    if (DEBUG) printf("CUDA Error (cudaFree d_un) in thread %d = %s\n",tid,cudaGetErrorString(Error));
   }
   if (phase==3) {
-    // Free the whole domain variables (master thread)
+    // Free the domain on host
     free(*h_u);
   }
 }
 
-void Boundaries(int phase,int tid, float *h_u, float *t_u){
+void Manage_Comms(int phase,int tid, float **h_u, float ***h_ul, float **d_u){
   cudaError_t Error;
   if (phase==1) {
-    // Communicate BCs from local thread to global domain
+    // Copy left and right cells from local domain to global domain
     // h_u[ 1 +tid*SNX] = t_u[ 1 ];
     // h_u[SNX+tid*SNX] = t_u[SNX];
     if (DEBUG) printf("::: Perform GPU-CPU comms (phase %d, thread %) :::\n",phase,tid);
-    Error=cudaMemcpy(*h_u+1+tid*SNX,*t_u+1,sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
-    Error=cudaMemcpy(*h_u+SNX+tid*SNX,*t_u+SNX,sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
+    Error=cudaMemcpy(*h_u+1+tid*SNX,*d_u+1,sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
+    Error=cudaMemcpy(*h_u+SNX+tid*SNX,*d_u+SNX,sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
   }
   if (phase==2) {
-    // Communicate BCs from global domain to local thread
+    // Copy left and right cells from global domain to local domain
     // t_u[  0  ] = h_u[  0  +tid*SNX];
     // t_u[SNX+1] = h_u[SNX+1+tid*SNX];
     if (DEBUG) printf("::: Perform GPU-CPU comms (phase %d, thread %) :::\n",phase,tid);
-    Error=cudaMemcpy(*t_u,*h_u+tid*SNX,sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
-    Error=cudaMemcpy(*t_u+SNX+1,*h_u+SNX+1+tid*SNX,sizeof(float),cudaMemcpyHostToDevice); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
+    Error=cudaMemcpy(*d_u,*h_u+tid*SNX,sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
+    Error=cudaMemcpy(*d_u+SNX+1,*h_u+SNX+1+tid*SNX,sizeof(float),cudaMemcpyHostToDevice); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
   }
   if (phase==3) {
     // Transfer all data from local domains to global domain
@@ -55,13 +57,8 @@ void Boundaries(int phase,int tid, float *h_u, float *t_u){
     //  h_u[i+1+tid*SNX] = t_u[i+1];
     //}
     if (DEBUG) printf("::: Perform GPU-CPU comms (phase %d, thread %) :::\n",phase,tid);
-    Error=cudaMemcpy(*h_u+1+tid*SNX,*t_u+1,SNX*sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
+    Error=cudaMemcpy(*h_u+1+tid*SNX,*d_u+1,SNX*sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
   }
-}
-
-void Manage_Comms(int tid, float **h_u, float **t_u){
-  // Manage boundary comunications
-  Boundaries(tid,*h_u,*t_u);
 }
 
 

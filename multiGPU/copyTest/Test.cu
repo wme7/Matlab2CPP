@@ -60,9 +60,17 @@ __global__ void Set_GPU_IC(int tid, float *u0){
   int i = threadIdx.x + blockDim.x * blockIdx.x;
   if (i < SNX) {
     if (tid == 0) {
-      u0[i] = 0.25; if (i<5) printf("IC data %d, %g\n",i,u0[i]);
+      u0[i] = 0.15; if (i<2) printf("IC data %d, %g\n",i,u0[i]);
     } else if (tid == 1) {
-      u0[i] = 0.75; if (i<5) printf("IC data %d, %g\n",i,u0[i]);
+      u0[i] = 0.30; if (i<2) printf("IC data %d, %g\n",i,u0[i]);
+    } else if (tid == 2) {
+      u0[i] = 0.45; if (i<2) printf("IC data %d, %g\n",i,u0[i]);
+    } else if (tid == 3) {
+      u0[i] = 0.60; if (i<2) printf("IC data %d, %g\n",i,u0[i]);
+    } else if (tid == 4) {
+      u0[i] = 0.75; if (i<2) printf("IC data %d, %g\n",i,u0[i]);
+    } else if (tid == 5) {
+      u0[i] = 0.90; if (i<2) printf("IC data %d, %g\n",i,u0[i]);
     }
   }
 }

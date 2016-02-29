@@ -5,6 +5,7 @@
 int main() {
   // Initialize varaibles
   float *h_u;
+  float *h_ul;
   float *t_u;
   float *t_un;
 
@@ -14,7 +15,7 @@ int main() {
   time_t t;
 
   // Initialize memory for h_u 
-  Manage_Memory(0,0,&h_u,&t_u,&t_un);
+  Manage_Memory(0,0,&h_u,$h_ul,&d_u,&d_un);
 
   // Set IC in global domain
   Call_Init(&h_u);
