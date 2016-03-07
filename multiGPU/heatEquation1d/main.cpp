@@ -37,17 +37,29 @@ int main() {
     t = clock(); 
     
     // Solver Loop 
-    //for (step = 0; step < NO_STEPS; step+=2) {
-    //if (step%100==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
-      // Communicate Boundaries
-    Manage_Comms(1,tid,&h_u,&d_u);
-    Manage_Comms(2,tid,&h_u,&d_u);
+    for (step = 0; step < NO_STEPS; step+=2) {
+      if (step%100==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
       
+      // Communicate Boundaries
+      Manage_Comms(1,tid,&h_u,&d_u);
+      #pragma omp barrier
+      Manage_Comms(2,tid,&h_u,&d_u);
+      #pragma omp barrier
+    
       // Compute stencil
-      //Call_Laplace(tid,&d_u,&d_un);
+      Call_Laplace(tid,&d_u,&d_un);
       #pragma omp barrier
 
-      //}
+      // Communicate Boundaries
+      Manage_Comms(1,tid,&h_u,&d_un);
+      #pragma omp barrier
+      Manage_Comms(2,tid,&h_u,&d_un);
+      #pragma omp barrier
+    
+      // Compute stencil
+      Call_Laplace(tid,&d_un,&d_u);
+      #pragma omp barrier
+    }
 
     // Copy threads data to global data variable
     Manage_Comms(3,tid,&h_u,&d_u);
