@@ -4,7 +4,7 @@ CUDA_LIB := -L $(CUDA_INSTALL_PATH)/lib64 -lcuda -lcudart -fopenmp -lgomp
 all: MAIN
 
 MAIN: CORE FUNCS
-	g++ $(CUDA_LIB) main.o heat2d.o -O3 -o heat1d.run
+	g++ $(CUDA_LIB) main.o heat2d.o -O3 -o heat2d.run
 
 CORE: main.cpp
 	g++ -O3 -fopenmp -lgomp -c main.cpp
