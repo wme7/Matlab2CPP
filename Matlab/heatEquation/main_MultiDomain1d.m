@@ -3,7 +3,7 @@
 % Matlab Prototype solver
 % by Manuel A. Diaz, NTU, 2013.02.14
 
-clear all;
+clear; %all
 
 NX =1024; % number of cells in the x-direction
 L =1.0; % domain length
