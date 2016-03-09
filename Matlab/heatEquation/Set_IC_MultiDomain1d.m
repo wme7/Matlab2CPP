@@ -1,4 +1,4 @@
-function u0 = Set_IC_MultiDomain1d(tid,u0,SNX,OMP_THREADS)
+function u0 = Set_IC_MultiDomain1d(tid,u0,SNX)
 
 for i = 2:SNX+1
     u0(i) = 0.0;

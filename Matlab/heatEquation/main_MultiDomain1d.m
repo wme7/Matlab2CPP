@@ -31,10 +31,10 @@ u2 = zeros(SNX+2,1);
 u3 = zeros(SNX+2,1);
 
 % Set IC, u = u#
-u0 = Set_IC_MultiDomain1d(0,u0,SNX,OMP_THREADS);
-u1 = Set_IC_MultiDomain1d(1,u1,SNX,OMP_THREADS);
-u2 = Set_IC_MultiDomain1d(2,u2,SNX,OMP_THREADS);
-u3 = Set_IC_MultiDomain1d(3,u3,SNX,OMP_THREADS);
+u0 = Set_IC_MultiDomain1d(0,u0,SNX);
+u1 = Set_IC_MultiDomain1d(1,u1,SNX);
+u2 = Set_IC_MultiDomain1d(2,u2,SNX);
+u3 = Set_IC_MultiDomain1d(3,u3,SNX);
 
 tic
 for step=0:2:NO_STEPS
@@ -47,7 +47,7 @@ for step=0:2:NO_STEPS
     [u,u3]=Call_Comms1d(3,u,u3,SNX,NX,OMP_THREADS);
     
     % Synchthreads!
-    %explot([u0;u1;u2;u3],'o'); drawnow;
+    %plot([u0;u1;u2;u3],'o'); drawnow;
     
     % Compute Laplace stencil
     u0n=Call_Laplace1d(u0,KX,SNX+2);
