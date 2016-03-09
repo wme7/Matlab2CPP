@@ -1,6 +1,6 @@
 
-% Heat Equation 
-% Matlab Prototype solver
+% Heat Equation 1d
+% Matlab Prototype for OMP solver
 % by Manuel A. Diaz, NTU, 2013.02.14
 
 clear; %all
