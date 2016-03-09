@@ -3,7 +3,7 @@
 % Matlab Prototype solver
 % by Manuel A. Diaz, NTU, 2013.02.14
 
-clear all;
+clear; % all
 
 NX =128; % number of cells in the x-direction
 NY =64; % number of cells in the y-direction
@@ -24,7 +24,7 @@ SNX =(NX/XGRID); % subregion size
 SNY =(NY/YGRID); % subregion size
 
 % Build Domain
-u = zeros(NY*NX,1);
+u = zeros((NY+2)*(NX+2),1);
 
 % Build OMP threads
 tid = 0:OMP_THREADS-1;
@@ -46,10 +46,10 @@ for j = 1:NY
 end
 
 % Set IC, u = u#
-u0 = Set_IC_MultiDomain1d(0,u0,SNY,SNX,OMP_THREADS); 
-u1 = Set_IC_MultiDomain1d(1,u1,SNY,SNX,OMP_THREADS); 
-u2 = Set_IC_MultiDomain1d(2,u2,SNY,SNX,OMP_THREADS); 
-u3 = Set_IC_MultiDomain1d(3,u3,SNY,SNX,OMP_THREADS); 
+u0 = Set_IC_MultiDomain2d(0,u0,SNY,SNX,OMP_THREADS); 
+u1 = Set_IC_MultiDomain2d(1,u1,SNY,SNX,OMP_THREADS); 
+u2 = Set_IC_MultiDomain2d(2,u2,SNY,SNX,OMP_THREADS); 
+u3 = Set_IC_MultiDomain2d(3,u3,SNY,SNX,OMP_THREADS); 
 
 %figure(1); surf(reshape(u0,[SNX,SNY]))
 
