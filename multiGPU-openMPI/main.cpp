@@ -1,12 +1,7 @@
-// Multi-GPU example using MPI 
-// for 1D Heat Transfer simulation
-// Prof. Matthew Smith, 2016
-// NCKU ME Department
-// msmith@mail.ncku.edu.tw
 
 #include <stdio.h>
 #include <mpi.h>
-#include "gpu_main.h"
+#include "heat1d.h"
 
 // Our local function declaration
 void Init(float *h_a);							// Initialize our flow field
@@ -125,12 +120,12 @@ void Save_Result(float *h_a) {
 	// Use old-style C to save results to file.
 	FILE *pFile;
 	int i;
-	pFile = fopen("Results.txt", "w");
+	pFile = fopen("results.txt", "w");
 	if (pFile == NULL) {
 		printf("Cannot open Results.txt for saving\n");
 	} else {
 		for (i = 0; i < N; i++) {
-			fprintf(pFile, "%g\t", h_a[i]);
+			fprintf(pFile, "%g\n", h_a[i]);
 		}		
 		fclose(pFile);
 		printf("Save Complete\n");

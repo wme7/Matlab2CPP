@@ -1,14 +1,7 @@
-// GPU_MAIN.CU
-// The CUDA (GPU) Component for a 
-// multi-GPU example using MPI 
-// for 1D Heat Transfer simulation
-// Prof. Matthew Smith, 2016
-// NCKU ME Department
-// msmith@mail.ncku.edu.tw
 
 // Contains our GPU functions etc.
 #include <stdio.h>
-#include "gpu_main.h"
+#include "heat1d.h"
 
 void CPU_Compute(int rank, float *h_a, float *h_b) {
 	int i;
