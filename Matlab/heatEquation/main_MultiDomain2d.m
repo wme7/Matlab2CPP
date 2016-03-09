@@ -32,8 +32,6 @@ for j = 1:NY+2, u(   1  +(NX+2)*(   j-1))=0.0; end % left
 for i = 1:NX+2, u(   i  +(NX+2)*(NY+2-1))=1.0; end % up
 for j = 1:NY+2, u((NX+2)+(NX+2)*(   j-1))=1.0; end % right
 
-%figure(1); surf(reshape(u,[NX+2,NY+2]))
-
 % Build OMP threads
 tid = 0:OMP_THREADS-1;
 u0 = zeros((SNY+2)*(SNX+2),1);
@@ -47,7 +45,8 @@ u1 = Set_IC_MultiDomain2d(1,u1,SNY,SNX);
 u2 = Set_IC_MultiDomain2d(2,u2,SNY,SNX); 
 u3 = Set_IC_MultiDomain2d(3,u3,SNY,SNX); 
 
-%%figure(1); surf(reshape(u0,[SNX+2,SNY+2]))
+%figure(1); surf(reshape(u0,[SNX+2,SNY+2]))
+figure(1); surf(reshape(u,[NX+2,NY+2]))
 
 tic;
 for step=0:2:NO_STEPS

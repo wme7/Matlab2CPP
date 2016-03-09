@@ -20,15 +20,17 @@
 #define XGRID 4 // No. of subdomains in the x-direction
 #define YGRID 1 // No. of subdomains in the y-direction
 #define OMP_THREADS XGRID*YGRID // No. of OMP threads
-#define SNX (NX/XGRID)+2 // subregion size + BC cells
-#define SNY (NY/YGRID)+2 // subregion size + BC cells
+#define SNX (NX/XGRID) // subregion size + BC cells
+#define SNY (NY/YGRID) // subregion size + BC cells
 #define PI 3.1415926535897932f
 
 /* Declare functions */
 void Manage_Memory(int phase, int tid, float **h_u, float **t_u, float **t_un);
 void Manage_Comms(int phase, int tid, float **t_u, float **t_un);
 
-void Call_Init(int tid, float **t_u);
-void Call_Laplace(int tid, float **t_u,float **t_un);
-void Call_Update(int tid, float **h_u,float **t_un);
+void Call_Init_globalDomain(float **h_u);
+void Call_Init_localDomain(int tid, float **t_u);
+void Call_Laplace(float **t_u,float **t_un);
+
+void Save_Results_Tid(int tid, float *t_u);
 void Save_Results(float *h_u);

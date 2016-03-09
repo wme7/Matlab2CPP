@@ -16,6 +16,9 @@ int main() {
   // Initialize memory for h_u 
   Manage_Memory(0,0,&h_u,&t_u,&t_un);
 
+  // Set Dirichlet BCs in global domain
+  Call_Init_globalDomain(&h_u);
+
   // Set number of threads
   omp_set_num_threads(OMP_THREADS);
   #pragma omp parallel shared(h_u) private(tid,t_u,t_un,step) 
@@ -27,7 +30,7 @@ int main() {
     Manage_Memory(1,tid,&h_u,&t_u,&t_un);
 
     // Set Initial Condition
-    Call_Init(tid,&t_u);
+    Call_Init_localDomain(tid,&t_u);
     #pragma omp barrier
 
     // Request computer current time
@@ -37,20 +40,35 @@ int main() {
     for (step = 0; step < NO_STEPS; step++) {
       if (step%100==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
 
-      // Compute stencil
-      //      Call_Laplace(&t_u,&t_un);
-
       // Communicate Boundaries
-      //      Call_Comms(tid,&t_u,&t_un);
+      Manage_Comms(1,tid,&h_u,&t_u);
+      #pragma omp barrier
+      Manage_Comms(2,tid,&h_u,&t_u);
+      #pragma omp barrier
+      
+      // Compute stencil
+      Call_Laplace(&t_u,&t_un);
+      #pragma omp barrier
 
-      // Update solution
-      //      Call_Update(1,tid,&u,&un)
+      // Communicate Boundaries (again)
+      Manage_Comms(1,tid,&h_u,&t_un);
+      #pragma omp barrier
+      Manage_Comms(2,tid,&h_u,&t_un);
+      #pragma omp barrier
+      
+      // Compute stencil (again)
+      Call_Laplace(&t_un,&t_u);
+      #pragma omp barrier
     }
 
     // Copy threads data to global data variable
-    Call_Update(tid,&h_u,&t_u);
+    Manage_Comms(3,tid,&h_u,&t_u);
+    #pragma omp barrier
 
-    // Free memory
+    // save results from local threads
+    //Save_Results_Tid(tid,t_u);
+
+    // Free threads memory
     Manage_Memory(2,tid,&h_u,&t_u,&t_un);
     #pragma omp barrier
   }
