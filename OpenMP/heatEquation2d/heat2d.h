@@ -20,8 +20,8 @@
 #define XGRID 4 // No. of subdomains in the x-direction
 #define YGRID 1 // No. of subdomains in the y-direction
 #define OMP_THREADS XGRID*YGRID // No. of OMP threads
-#define SNX (NX/XGRID) // subregion size + BC cells
-#define SNY (NY/YGRID) // subregion size + BC cells
+#define SNX (NX/XGRID) // subregion size
+#define SNY (NY/YGRID) // subregion size
 #define PI 3.1415926535897932f
 
 /* Declare functions */
