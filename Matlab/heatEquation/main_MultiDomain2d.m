@@ -5,8 +5,8 @@
 
 clear; % all
 
-NX =40; % number of cells in the x-direction
-NY =40; % number of cells in the y-direction
+NX =64; % number of cells in the x-direction
+NY =64; % number of cells in the y-direction
 L =1.0; % domain length
 W =1.0; % domain width
 C =1.0; % c, material conductivity. Uniform assumption.

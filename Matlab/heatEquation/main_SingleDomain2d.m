@@ -19,7 +19,7 @@ NO_STEPS =(TEND/DT); % No. of time steps
 u = zeros(NY*NX,1);
 
 % set initial condition, u = u0
-u = Set_IC2d(NY,NX,u); 
+u = Set_IC_SingleDomain2d(NY,NX,u); 
 
 tic;
 for step=0:2:NO_STEPS

@@ -1,4 +1,4 @@
-function u0 = Set_IC(NY,NX,u0)
+function u0 = Set_IC_SingleDomain2d(NY,NX,u0)
 
 for j = 1:NY
     for i = 1:NX
