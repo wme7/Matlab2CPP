@@ -38,7 +38,7 @@ int main() {
 
     // Solver Loop 
     for (step = 0; step < NO_STEPS; step++) {
-      if (step%100==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
+      if (step%100==0 && tid==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
 
       // Communicate Boundaries
       Manage_Comms(1,tid,&h_u,&t_u);
