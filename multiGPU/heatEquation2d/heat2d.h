@@ -5,10 +5,10 @@
 #include <omp.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 126 // number of cells in the x-direction
-#define NY 126 // number of cells in the y-direction
-#define L 1.0 // domain length
-#define W 1.0 // domain width
+#define NX 480 // number of cells in the x-direction
+#define NY 120 // number of cells in the y-direction
+#define L 20.0 // domain length
+#define W 10.0 // domain width
 #define C 1.0 // c, material conductivity. Uniform assumption.
 #define TEND 1.0 // tEnd, output time
 #define DX (L/NX) // dx, cell size

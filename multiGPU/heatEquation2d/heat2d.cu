@@ -106,8 +106,8 @@ __global__ void Set_GPU_IC(int tid, float *u){
 
 void Call_GPU_Init(int tid, float **ut0){
   // Load the initial condition
-  dim3 dimBlock(32,32); // threads per block
-  dim3 dimGrid((SNX+2)/32,(SNY+2)/32,1); // blocks in grid
+  dim3 dimBlock(8,8); // threads per block
+  dim3 dimGrid(ceil((SNX+2.0f)/8),ceil((SNY+2.0f)/8)); // blocks in grid
   Set_GPU_IC<<<dimGrid,dimBlock>>>(tid,*ut0);
   if (DEBUG) printf("CUDA error (Set_GPU_IC) in thread %d = %s\n",tid,cudaGetErrorString(cudaPeekAtLastError()));
   cudaError_t Error = cudaDeviceSynchronize();
@@ -135,8 +135,8 @@ __global__ void Laplace1d(float *u, float *un){
 
 void Call_Laplace(int tid, float **u, float **un){
   // Produce one iteration of the laplace operator
-  dim3 dimBlock(32,32); // threads per block
-  dim3 dimGrid((SNX+2)/32,(SNY+2)/32,1); // blocks in grid
+  dim3 dimBlock(8,8); // threads per block
+  dim3 dimGrid(ceil((SNX+2.0f)/8),ceil((SNY+2.0f)/8)); // blocks in grid
   Laplace1d<<<dimGrid,dimBlock>>>(*u,*un);
   if (DEBUG) printf("CUDA error (Call_Laplace) in thread %d = %s\n",tid,cudaGetErrorString(cudaPeekAtLastError()));
 }
