@@ -18,11 +18,11 @@ int main() {
   Manage_Memory(0,0,&h_u,&h_ul,&d_u,&d_un);
 
   // Set Dirichlet BCs in global domain
-  Call_Init(&h_u);
+  Call_CPU_Init(&h_u);
   
   // Set number of threads
   omp_set_num_threads(NO_GPU);
-#pragma omp parallel shared(h_u) private(tid,h_ul,d_u,d_un,step) 
+  #pragma omp parallel shared(h_u) private(tid,h_ul,d_u,d_un,step) 
   {
     // Get thread ID
     tid = omp_get_thread_num(); printf("tid = %d\n",tid);
@@ -38,33 +38,33 @@ int main() {
     t = clock(); 
     
     // Solver Loop 
-    //for (step = 0; step < NO_STEPS; step+=2) {
-    //if (step%100==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
+    for (step = 0; step < NO_STEPS; step+=2) {
+    if (step%100==0 && tid==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
       
       // Communicate Boundaries
-      //Manage_Comms(1,tid,&h_u,&d_u);
-      //#pragma omp barrier
-      //Manage_Comms(2,tid,&h_u,&d_u);
-      //#pragma omp barrier
+      Manage_Comms(1,tid,&h_u,&h_ul,&d_u);
+      #pragma omp barrier
+      Manage_Comms(2,tid,&h_u,&h_ul,&d_u);
+      #pragma omp barrier
     
       // Compute stencil
-      //Call_Laplace(tid,&d_u,&d_un);
-      //#pragma omp barrier
+      Call_Laplace(tid,&d_u,&d_un);
+      #pragma omp barrier
 
       // Communicate Boundaries
-      //Manage_Comms(1,tid,&h_u,&d_un);
-      //#pragma omp barrier
-      //Manage_Comms(2,tid,&h_u,&d_un);
-      //#pragma omp barrier
+      Manage_Comms(1,tid,&h_u,&h_ul,&d_un);
+      #pragma omp barrier
+      Manage_Comms(2,tid,&h_u,&h_ul,&d_un);
+      #pragma omp barrier
     
       // Compute stencil
-      //Call_Laplace(tid,&d_un,&d_u);
-      //#pragma omp barrier
-      //}
+      Call_Laplace(tid,&d_un,&d_u);
+      #pragma omp barrier
+    }
 
     // Copy threads data to global data variable
-    //Manage_Comms(3,tid,&h_u,&h_ul,&d_u);
-    //#pragma omp barrier
+    Manage_Comms(3,tid,&h_u,&h_ul,&d_u);
+    #pragma omp barrier
 
     // Copy threads data to local data variables
     //Manage_Comms(4,tid,&h_u,&h_ul,&d_u);
@@ -72,9 +72,11 @@ int main() {
     
     // save results from local threads
     //Save_Results_Tid(tid,h_ul);
+    //#pragma omp barrier
 
     // Free memory
     Manage_Memory(2,tid,&h_u,&h_ul,&d_u,&d_un);
+    #pragma omp barrier
   }
 
   // Measure and Report computation time

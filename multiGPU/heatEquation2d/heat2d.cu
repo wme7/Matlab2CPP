@@ -38,28 +38,28 @@ void Manage_Comms(int phase, int tid, float **h_u, float **h_ul, float **d_u){
   if (phase==1) {
     // Copy left, right, up and down "interior" boundary  cells from local domain to global domain
     if (DEBUG) printf("::: Perform GPU-CPU comms (phase %d, thread %) :::\n",phase,tid);
-    Error=cudaMemcpy(*h_u+ 1 +tid*SNX+(NX+2)* 1 ,*d_u+ 1 +(SNX+2)* 1 ,SNX*sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
-    Error=cudaMemcpy(*h_u+SNX+tid*SNX+(NX+2)*SNY,*d_u+SNX+(SNX+2)*SNY,SNX*sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
-    for (int j = 1; j < SNY+1; j++) {
-      Error=cudaMemcpy(*h_u+ 1 +tid*SNX+(NX+2)*j,*d_u+ 1 +(SNX+2)*j,sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
-      Error=cudaMemcpy(*h_u+SNX+tid*SNX+(NX+2)*j,*d_u+SNX+(SNX+2)*j,sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
+    for (int j = 0; j < SNY; j++) {
+      Error=cudaMemcpy(*h_u+ 1 +tid*SNX+(NX+2)*(j+1),*d_u+ 1 +(SNX+2)*(j+1),sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
+      Error=cudaMemcpy(*h_u+SNX+tid*SNX+(NX+2)*(j+1),*d_u+SNX+(SNX+2)*(j+1),sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
     }
+    Error=cudaMemcpy(*h_u+1+tid*SNX+(NX+2)* 1 ,*d_u+1+(SNX+2)* 1 ,SNX*sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
+    Error=cudaMemcpy(*h_u+1+tid*SNX+(NX+2)*SNY,*d_u+1+(SNX+2)*SNY,SNX*sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
   }
   if (phase==2) {
     // Copy left, right, up and down boundary cells from global domain to local domain
     if (DEBUG) printf("::: Perform GPU-CPU comms (phase %d, thread %) :::\n",phase,tid);
-    Error=cudaMemcpy(*d_u+  0  +(SNX+2)* 1 ,*h_u+  0  +tid*SNX+(NX+2)* 1 ,SNX*sizeof(float),cudaMemcpyHostToDevice); if (DEBUG) printf("CUDA error (Memcpy h -> d) = %s \n",cudaGetErrorString(Error));
-    Error=cudaMemcpy(*d_u+SNX+1+(SNX+2)*SNY,*h_u+SNX+1+tid*SNX+(NX+2)*SNY,SNX*sizeof(float),cudaMemcpyHostToDevice); if (DEBUG) printf("CUDA error (Memcpy h -> d) = %s \n",cudaGetErrorString(Error));
-    for (int j = 1; j < SNY+1; j++) {
-      Error=cudaMemcpy(*d_u+  0  +(SNX+2)*j,*h_u+  0  +tid*SNX+(NX+2)*j,sizeof(float),cudaMemcpyHostToDevice); if (DEBUG) printf("CUDA error (Memcpy h -> d) = %s \n",cudaGetErrorString(Error));
-      Error=cudaMemcpy(*d_u+SNX+1+(SNX+2)*j,*h_u+SNX+1+tid*SNX+(NX+2)*j,sizeof(float),cudaMemcpyHostToDevice); if (DEBUG) printf("CUDA error (Memcpy h -> d) = %s \n",cudaGetErrorString(Error));
+    for (int j = 0; j < SNY; j++) {
+      Error=cudaMemcpy(*d_u+  0  +(SNX+2)*(j+1),*h_u+  0  +tid*SNX+(NX+2)*(j+1),sizeof(float),cudaMemcpyHostToDevice); if (DEBUG) printf("CUDA error (Memcpy h -> d) = %s \n",cudaGetErrorString(Error));
+      Error=cudaMemcpy(*d_u+SNX+1+(SNX+2)*(j+1),*h_u+SNX+1+tid*SNX+(NX+2)*(j+1),sizeof(float),cudaMemcpyHostToDevice); if (DEBUG) printf("CUDA error (Memcpy h -> d) = %s \n",cudaGetErrorString(Error));
     }
+    Error=cudaMemcpy(*d_u+1+(SNX+2)*   0   ,*h_u+1+tid*SNX+(NX+2)*   0   ,SNX*sizeof(float),cudaMemcpyHostToDevice); if (DEBUG) printf("CUDA error (Memcpy h -> d) = %s \n",cudaGetErrorString(Error));
+    Error=cudaMemcpy(*d_u+1+(SNX+2)*(SNY+1),*h_u+1+tid*SNX+(NX+2)*(SNY+1),SNX*sizeof(float),cudaMemcpyHostToDevice); if (DEBUG) printf("CUDA error (Memcpy h -> d) = %s \n",cudaGetErrorString(Error));
   }
   if (phase==3) {
     // Transfer all data from local domains to global domain
     if (DEBUG) printf("::: Perform GPU-CPU comms (phase %d, thread %) :::\n",phase,tid);
-    for (int j = 1; j < SNY+1; j++) {
-      Error=cudaMemcpy(*h_u+ 1 +tid*SNX+(NX+2)*j,*d_u+ 1 +(SNX+2)*j,SNX*sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
+    for (int j = 0; j < SNY; j++) {
+      Error=cudaMemcpy(*h_u+1+tid*SNX+(NX+2)*(j+1),*d_u+1+(SNX+2)*(j+1),SNX*sizeof(float),cudaMemcpyDeviceToHost); if (DEBUG) printf("CUDA error (Memcpy d -> h) = %s \n",cudaGetErrorString(Error));
     }
   }
   if (phase==4) {
@@ -78,7 +78,7 @@ void Set_IC(float *u0){
   for (int j = 0; j < NY+2; j++) u0[(NX+1)+(NX+2)*   j  ]=1.0; // right
 }
 
-void Call_Init(float **u0){
+void Call_CPU_Init(float **u0){
   // Load the initial condition
   Set_IC(*u0);
 }
@@ -92,7 +92,7 @@ __global__ void Set_GPU_IC(int tid, float *u){
   // Set initial condition only at "interior" nodes
   if (o<(SNX+2)*(SNY+2)) {
     if (i>0 && i<SNX+1 && j>0 && j<SNY+1) {
-      switch tid {
+      switch (tid) {
 	case 0: u[o] = 0.10; break;
 	case 1: u[o] = 0.25; break;
 	case 2: u[o] = 0.40; break;
@@ -100,20 +100,14 @@ __global__ void Set_GPU_IC(int tid, float *u){
 	case 4: u[o] = 0.75; break;
 	case 5: u[o] = 0.90; break;
       }
-      //if      (tid==0) u[o] = 0.10;
-      //else if (tid==1) u[o] = 0.25;
-      //else if (tid==2) u[o] = 0.40;
-      //else if (tid==3) u[o] = 0.50;
-      //else if (tid==4) u[o] = 0.75;
-      //else if (tid==5) u[o] = 0.90; 
     }
   }
 }
 
 void Call_GPU_Init(int tid, float **ut0){
   // Load the initial condition
-  dim3 dimBlock(16,16); // threads per block
-  dim3 dimGrid((SNX+2)/16,(SNY+2)/16); // blocks in grid
+  dim3 dimBlock(32,32); // threads per block
+  dim3 dimGrid((SNX+2)/32,(SNY+2)/32,1); // blocks in grid
   Set_GPU_IC<<<dimGrid,dimBlock>>>(tid,*ut0);
   if (DEBUG) printf("CUDA error (Set_GPU_IC) in thread %d = %s\n",tid,cudaGetErrorString(cudaPeekAtLastError()));
   cudaError_t Error = cudaDeviceSynchronize();
@@ -141,10 +135,25 @@ __global__ void Laplace1d(float *u, float *un){
 
 void Call_Laplace(int tid, float **u, float **un){
   // Produce one iteration of the laplace operator
-  dim3 dimBlock(16,16); // threads per block
-  dim3 dimGrid((SNX+2)/16,(SNY+2)/16); // blocks in grid
+  dim3 dimBlock(32,32); // threads per block
+  dim3 dimGrid((SNX+2)/32,(SNY+2)/32,1); // blocks in grid
   Laplace1d<<<dimGrid,dimBlock>>>(*u,*un);
   if (DEBUG) printf("CUDA error (Call_Laplace) in thread %d = %s\n",tid,cudaGetErrorString(cudaPeekAtLastError()));
+}
+
+void Save_Results(float *u){
+  // print result to txt file
+  FILE *pFile = fopen("result.txt", "w");
+  if (pFile != NULL) {
+    for (int j = 0; j < NY+2; j++) {
+      for (int i = 0; i < NX+2; i++) {      
+	fprintf(pFile, "%d\t %d\t %g\n",i,j,u[i+(NX+2)*j]);
+      }
+    }
+    fclose(pFile);
+  } else {
+    printf("Unable to save to file\n");
+  }
 }
 
 void Save_Results_Tid(int tid, float *u){
@@ -174,20 +183,5 @@ void Save_Results_Tid(int tid, float *u){
     } else {
       printf("Unable to save to file\n");
     }
-  }
-}
-
-void Save_Results(float *u){
-  // print result to txt file
-  FILE *pFile = fopen("result.txt", "w");
-  if (pFile != NULL) {
-    for (int j = 0; j < NY+2; j++) {
-      for (int i = 0; i < NX+2; i++) {      
-	fprintf(pFile, "%d\t %d\t %g\n",i,j,u[i+(NX+2)*j]);
-      }
-    }
-    fclose(pFile);
-  } else {
-    printf("Unable to save to file\n");
   }
 }
