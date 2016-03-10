@@ -30,6 +30,11 @@ void Manage_Memory(int phase, int tid, float **h_u, float **h_ul, float **d_u, f
 
 void Manage_Comms(int phase, int tid, float **h_u, float **h_ul, float **d_u){
   cudaError_t Error;
+  if (phase==0) {
+    // Transfer all data from local domains to global domain
+    if (DEBUG) printf("::: Perform GPU-CPU comms (phase %d, thread %) :::\n",phase,tid);
+    Error=cudaMemcpy(*d_u,*h_ul,(SNX+2)*(SNY+2)*sizeof(float),cudaMemcpyHostToDevice); if (DEBUG) printf("CUDA error (Memcpy h -> d) = %s \n",cudaGetErrorString(Error));
+  }
   if (phase==1) {
     // Copy left, right, up and down "interior" boundary  cells from local domain to global domain
     if (DEBUG) printf("::: Perform GPU-CPU comms (phase %d, thread %) :::\n",phase,tid);
@@ -67,10 +72,10 @@ void Manage_Comms(int phase, int tid, float **h_u, float **h_ul, float **d_u){
 
 void Set_IC(float *u0){
   // Set Dirichlet boundary conditions in global domain
-  for (int i = 0; i < NX+2; i++) u0[   i  +(NX+2)*   0  ]=0.0; // down
-  for (int i = 1; i < NX+2; i++) u0[   i  +(NX+2)*(NY+1)]=1.0; // up
+  for (int i = 0; i < NX+2; i++) u0[   i  +(NX+2)*   0  ]=0.0; // down  
   for (int j = 0; j < NY+2; j++) u0[   0  +(NX+2)*   j  ]=0.0; // left
-  for (int j = 1; j < NY+2; j++) u0[(NX+1)+(NX+2)*   j  ]=1.0; // right
+  for (int i = 0; i < NX+2; i++) u0[   i  +(NX+2)*(NY+1)]=1.0; // up
+  for (int j = 0; j < NY+2; j++) u0[(NX+1)+(NX+2)*   j  ]=1.0; // right
 }
 
 void Call_Init(float **u0){
@@ -87,21 +92,29 @@ __global__ void Set_GPU_IC(int tid, float *u){
   // Set initial condition only at "interior" nodes
   if (o<(SNX+2)*(SNY+2)) {
     if (i>0 && i<SNX+1 && j>0 && j<SNY+1) {
-      if      (tid==0) u[o] = 0.10;
-      else if (tid==1) u[o] = 0.25;
-      else if (tid==2) u[o] = 0.40;
-      else if (tid==3) u[o] = 0.50;
-      else if (tid==4) u[o] = 0.75;
-      else if (tid==5) u[o] = 0.90; 
+      switch tid {
+	case 0: u[o] = 0.10; break;
+	case 1: u[o] = 0.25; break;
+	case 2: u[o] = 0.40; break;
+	case 3: u[o] = 0.50; break;
+	case 4: u[o] = 0.75; break;
+	case 5: u[o] = 0.90; break;
+      }
+      //if      (tid==0) u[o] = 0.10;
+      //else if (tid==1) u[o] = 0.25;
+      //else if (tid==2) u[o] = 0.40;
+      //else if (tid==3) u[o] = 0.50;
+      //else if (tid==4) u[o] = 0.75;
+      //else if (tid==5) u[o] = 0.90; 
     }
   }
 }
 
 void Call_GPU_Init(int tid, float **ut0){
   // Load the initial condition
-  dim3 threads(16,16);
-  dim3 blocks((SNX+2)/16,(SNY+2)/16);
-  Set_GPU_IC<<<blocks,threads>>>(tid,*ut0);
+  dim3 dimBlock(16,16); // threads per block
+  dim3 dimGrid((SNX+2)/16,(SNY+2)/16); // blocks in grid
+  Set_GPU_IC<<<dimGrid,dimBlock>>>(tid,*ut0);
   if (DEBUG) printf("CUDA error (Set_GPU_IC) in thread %d = %s\n",tid,cudaGetErrorString(cudaPeekAtLastError()));
   cudaError_t Error = cudaDeviceSynchronize();
   if (DEBUG) printf("CUDA error (Set_GPU_IC Synchronize) %s\n",cudaGetErrorString(Error));
@@ -128,9 +141,9 @@ __global__ void Laplace1d(float *u, float *un){
 
 void Call_Laplace(int tid, float **u, float **un){
   // Produce one iteration of the laplace operator
-  dim3 threads(16,16);
-  dim3 blocks((SNX+2)/16,(SNY+2)/16);
-  Laplace1d<<<blocks,threads>>>(*u,*un);
+  dim3 dimBlock(16,16); // threads per block
+  dim3 dimGrid((SNX+2)/16,(SNY+2)/16); // blocks in grid
+  Laplace1d<<<dimGrid,dimBlock>>>(*u,*un);
   if (DEBUG) printf("CUDA error (Call_Laplace) in thread %d = %s\n",tid,cudaGetErrorString(cudaPeekAtLastError()));
 }
 

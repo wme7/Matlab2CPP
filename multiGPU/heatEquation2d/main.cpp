@@ -63,15 +63,15 @@ int main() {
       //}
 
     // Copy threads data to global data variable
-    Manage_Comms(3,tid,&h_u,&h_ul,&d_u);
-    #pragma omp barrier
+    //Manage_Comms(3,tid,&h_u,&h_ul,&d_u);
+    //#pragma omp barrier
 
     // Copy threads data to local data variables
-    Manage_Comms(4,tid,&h_u,&h_ul,&d_u);
-    #pragma omp barrier
+    //Manage_Comms(4,tid,&h_u,&h_ul,&d_u);
+    //#pragma omp barrier
     
     // save results from local threads
-    Save_Results_Tid(tid,h_ul);
+    //Save_Results_Tid(tid,h_ul);
 
     // Free memory
     Manage_Memory(2,tid,&h_u,&h_ul,&d_u,&d_un);
