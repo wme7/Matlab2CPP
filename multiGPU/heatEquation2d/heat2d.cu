@@ -90,24 +90,24 @@ __global__ void Set_GPU_IC(int tid, float *u){
   int o = i+(SNX+2)*j; u[o] = 0.0;
 
   // Set initial condition only at "interior" nodes
-  if (o<(SNX+2)*(SNY+2)) {
-    if (i>0 && i<SNX+1 && j>0 && j<SNY+1) {
-      switch (tid) {
-	case 0: u[o] = 0.10; break;
-	case 1: u[o] = 0.25; break;
-	case 2: u[o] = 0.40; break;
-	case 3: u[o] = 0.50; break;
-	case 4: u[o] = 0.75; break;
-	case 5: u[o] = 0.90; break;
-      }
-    }
-  }
+  //if (o<(SNX+2)*(SNY+2)) {
+  //if (i>0 && i<SNX+1 && j>0 && j<SNY+1) {
+      //switch (tid) {
+      //case 0: u[o] = 0.10; break;
+      //case 1: u[o] = 0.25; break;
+      //case 2: u[o] = 0.40; break;
+      //case 3: u[o] = 0.50; break;
+      //case 4: u[o] = 0.75; break;
+      //case 5: u[o] = 0.90; break;
+      //}
+  //}
+  //}
 }
 
 void Call_GPU_Init(int tid, float **ut0){
   // Load the initial condition
-  dim3 dimBlock(8,8); // threads per block
-  dim3 dimGrid(ceil((SNX+2.0f)/8),ceil((SNY+2.0f)/8)); // blocks in grid
+  dim3 dimBlock(NO_threads,NO_threads); // threads per block
+  dim3 dimGrid(ceil((SNX+2.0f)/NO_threads),ceil((SNY+2.0f)/NO_threads)); // blocks in grid
   Set_GPU_IC<<<dimGrid,dimBlock>>>(tid,*ut0);
   if (DEBUG) printf("CUDA error (Set_GPU_IC) in thread %d = %s\n",tid,cudaGetErrorString(cudaPeekAtLastError()));
   cudaError_t Error = cudaDeviceSynchronize();
@@ -135,8 +135,8 @@ __global__ void Laplace1d(float *u, float *un){
 
 void Call_Laplace(int tid, float **u, float **un){
   // Produce one iteration of the laplace operator
-  dim3 dimBlock(8,8); // threads per block
-  dim3 dimGrid(ceil((SNX+2.0f)/8),ceil((SNY+2.0f)/8)); // blocks in grid
+  dim3 dimBlock(NO_threads,NO_threads); // threads per block
+  dim3 dimGrid(ceil((SNX+2.0f)/NO_threads),ceil((SNY+2.0f)/NO_threads)); // blocks in grid
   Laplace1d<<<dimGrid,dimBlock>>>(*u,*un);
   if (DEBUG) printf("CUDA error (Call_Laplace) in thread %d = %s\n",tid,cudaGetErrorString(cudaPeekAtLastError()));
 }

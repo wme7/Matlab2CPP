@@ -5,10 +5,10 @@
 #include <omp.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 480 // number of cells in the x-direction
-#define NY 120 // number of cells in the y-direction
-#define L 20.0 // domain length
-#define W 10.0 // domain width
+#define NX 800 // number of cells in the x-direction
+#define NY 800 // number of cells in the y-direction
+#define L 40.0 // domain length
+#define W 20.0 // domain width
 #define C 1.0 // c, material conductivity. Uniform assumption.
 #define TEND 1.0 // tEnd, output time
 #define DX (L/NX) // dx, cell size
@@ -17,9 +17,10 @@
 #define KX (C*DT/(DX*DX)) // numerical conductivity
 #define KY (C*DT/(DY*DY)) // numerical conductivity
 #define NO_STEPS (TEND/DT) // No. of time steps
-#define XGRID 2 // No. of subdomains in the x-direction
+#define NO_GPU 2 // No. of GPUs and OMP threads
+#define NO_threads 6 // No. GPU threads [dimBlock(NO_threads,NO_threads)]
+#define XGRID NO_GPU // No. of subdomains in the x-direction
 #define YGRID 1 // No. of subdomains in the y-direction
-#define NO_GPU XGRID*YGRID // No. of GPUs and OMP threads
 #define SNX (NX/XGRID) // subregion size
 #define SNY (NY/YGRID) // subregion size
 #define PI 3.1415926535897932f
