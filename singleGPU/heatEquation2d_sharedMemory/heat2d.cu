@@ -167,21 +167,21 @@ __global__ void Laplace2d_GPU2(float *u,float *un){
   __shared__ float ut[NI][NJ];
 
   // Threads id
-  ti = threadIdx.x; i = ti + blockIdx.x*blockDim.x; // blockDim.x = NI-2
-  tj = threadIdx.y; j = tj + blockIdx.y*blockDim.y; // blockDim.y = NJ-2
+  ti = threadIdx.x; i = ti + blockIdx.x*(NI-2); // blockDim.x = NI-2
+  tj = threadIdx.y; j = tj + blockIdx.y*(NJ-2); // blockDim.y = NJ-2
 
   // compute domain index
-  o =  i + NX*j; 
+  o = i+NX*j; 
   
   // read from global memory to shared memory
   // (if thread is not outside domain)
-  if (o<NX*NY) ut[ti][tj] = u[o];
+  if (o<NY*NX) {ut[ti][tj] = u[o];}
   __syncthreads();
 
   // only update if thread is (1.) within the whole domain
   if(i>0 && i<NX-1 && j>0 && j<NY-1) {
     // and (2.) if is not the boundary of the block
-    if (ti>0 && ti<NI-1 && tj>0 && tj<NJ-1) {
+    if ((ti>0) && (ti<NI-1) && (tj>0) && (tj<NJ-1)) {
       // update temperatures
       un[o] = u[o]+ 
 	KX*(ut[ti+1][tj]-2*ut[ti][tj]+ut[ti-1][tj])+
@@ -197,8 +197,8 @@ __global__ void Laplace2d_GPU3(float *u,float *un){
   __shared__ float ut[NI][3];
 
   // Threads id
-  ti = threadIdx.x; i =  ti  + blockIdx.x*blockDim.x; // blockDim.x = NI-2
-  tj = threadIdx.y; j = tj+1 + blockIdx.y*blockDim.y; // blockDim.x = NJ
+  ti = threadIdx.x; i =  ti  + blockIdx.x*(NI-2); // blockDim.x = NI-2
+  tj = threadIdx.y; j = tj+1 + blockIdx.y*( NJ ); // blockDim.x = NJ
 
   // compute domain index
   s = i+NX*(j-1); // node(j-1,i) 
@@ -261,8 +261,10 @@ void Call_GPU_Laplace(float **d_u, float **d_un) {
   if (USE_GPU==1) {
     // GPU - no shared memory
     // set threads and blocks ( naive approach )
-    dimGrid =dim3(DIVIDE_INTO(NX,16),DIVIDE_INTO(NY,16),1); 
-    dimBlock=dim3(16,16,1);
+    dimGrid =dim3(DIVIDE_INTO(NX,NI),DIVIDE_INTO(NY,NJ),1); 
+    dimBlock=dim3(NI,NJ,1);
+    //dimGrid =dim3(DIVIDE_INTO(NX,32),DIVIDE_INTO(NY,32),1); 
+    //dimBlock=dim3(32,32,1);
     Laplace2d_GPU1<<<dimGrid,dimBlock>>>(*d_u,*d_un);
     if (DEBUG) printf("CUDA error (Laplace GPU %d) %s\n",
 		      USE_GPU,cudaGetErrorString(cudaPeekAtLastError()));

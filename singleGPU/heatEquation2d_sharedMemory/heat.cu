@@ -9,7 +9,7 @@
 // set USE_GPU to 3 (and USE_CPU to 0) to use GPU kernel - with shared mem_v2
 
 #define USE_CPU 0
-#define USE_GPU 3
+#define USE_GPU 1
 
 // DIVIDE_INTO(x/y) for integers, used to determine # of blocks/warps etc.
 #define DIVIDE_INTO(x,y) (((x) + (y) - 1)/(y))
@@ -225,7 +225,6 @@ int main(int argc, char *argv[])
     dim3 grid_dim, block_dim;
     clock_t startclock, stopclock;
     double timeperstep;
-    FILE *fp;
    
     // domain size and number of timesteps (iterations)
     ni = 1024;
@@ -358,10 +357,11 @@ int main(int argc, char *argv[])
     cudaThreadSynchronize();
     stopclock = clock();
     timeperstep =((double)(stopclock-startclock))/CLOCKS_PER_SEC;
-    timeperstep = timeperstep / nstep;
-    timeperstep = timeperstep / (ni*nj);
+    //timeperstep = timeperstep / nstep;
+    //timeperstep = timeperstep / (ni*nj);
 
-    printf("Time per point per step = %e\n",timeperstep);
+    //printf("Time per point per step = %e\n",timeperstep);
+	printf("Time = %g\n",timeperstep);
 
 
     // copy temperature array from device to host

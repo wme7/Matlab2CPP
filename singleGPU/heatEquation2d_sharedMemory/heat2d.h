@@ -4,8 +4,8 @@
 #include <math.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 128 // number of cells in the x-direction
-#define NY 128 // number of cells in the y-direction
+#define NX 1024 // number of cells in the x-direction
+#define NY 1024 // number of cells in the y-direction
 #define L 10.0 // domain length
 #define W 10.0 // domain width
 #define C 1.0 // c, material conductivity. Uniform assumption.
@@ -19,8 +19,8 @@
 #define PI 3.1415926535897932f
 #define NI 64 // block size in the i-direction
 #define NJ 8  // block size in the j-direction
-#define I2D(n,i,j) (i+n*j) // transfrom a 2D array index pair into linear index memory
-#define DIVIDE_INTO(x,y) ((x+y-1)/y) // define No. of blocks/warps
+#define I2D(n,i,j) ((i)+(n)*(j)) // transfrom a 2D array index pair into linear index memory
+#define DIVIDE_INTO(x,y) (((x)+(y)-1)/(y)) // define No. of blocks/warps
 
 // set USE_CPU to 1 to run only on CPU
 // set USE_GPU to 1 to use GPU kernel - without shared mem

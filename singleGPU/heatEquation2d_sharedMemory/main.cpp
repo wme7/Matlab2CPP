@@ -27,18 +27,18 @@ int main() {
   if (USE_CPU==1) {
     // Solve with CPU
     for (int step=0; step < NO_STEPS; step+=2) {
-      if (step%1000==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
+      if (step%10000==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
       // Compute Laplace stencil
-      Call_CPU_Laplace(&h_u,&h_un);
-      Call_CPU_Laplace(&h_un,&h_u);
+      Call_CPU_Laplace(&h_u,&h_un); // 1st iter 
+      Call_CPU_Laplace(&h_un,&h_u); // 2nd iter
     }
   } else {
     // Solve with GPU
     for (int step=0; step < NO_STEPS; step+=2) {
-      if (step%1000==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
+      if (step%10000==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
       // Compute Laplace stencil
-      Call_GPU_Laplace(&d_u,&d_un);
-      Call_GPU_Laplace(&d_un,&d_u);
+      Call_GPU_Laplace(&d_u,&d_un); // 1st iter
+      Call_GPU_Laplace(&d_un,&d_u); // 2nd iter
     }
     // Copy domain from device -> host
     Manage_Comms(1,&h_u,&d_u);
