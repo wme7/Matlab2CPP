@@ -24,18 +24,25 @@ int main() {
   // Request computer current time
   time_t t = clock();
 
-  // Solver Loop (version 2)
-  for (int step=0; step < NO_STEPS; step+=2) {
-    if (step%100==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
-
-    // Compute stencil
-    Call_GPU_Laplace(&d_u,&d_un);
-
-    // Compute stencil (again)
-    Call_GPU_Laplace(&d_un,&d_u);
+  if (USE_CPU==1) {
+    // Solve with CPU
+    for (int step=0; step < NO_STEPS; step+=2) {
+      if (step%1000==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
+      // Compute Laplace stencil
+      Call_CPU_Laplace(&h_u,&h_un);
+      Call_CPU_Laplace(&h_un,&h_u);
+    }
+  } else {
+    // Solve with GPU
+    for (int step=0; step < NO_STEPS; step+=2) {
+      if (step%1000==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
+      // Compute Laplace stencil
+      Call_GPU_Laplace(&d_u,&d_un);
+      Call_GPU_Laplace(&d_un,&d_u);
+    }
+    // Copy domain from device -> host
+    Manage_Comms(1,&h_u,&d_u);
   }
-  // Copy domain from device -> host
-  Manage_Comms(1,&h_u,&d_u);
 
   // Measure and Report computation time
   t = clock()-t; printf("CPU time (%f seconds).\n",((float)t)/CLOCKS_PER_SEC);

@@ -191,63 +191,57 @@ __global__ void Laplace2d_GPU2(float *u,float *un){
 }
 
 __global__ void Laplace2d_GPU3(float *u,float *un){
-  int ti, tj, i, j, o, n, s, o_sh, n_sh, s_sh, tmp_sh, ntot;
-  bool ibool;
+  int ti, tj, i, j, o, n, s, jp1_sh, j_sh, jm1_sh, tmp_sh, ntot, j_iter; bool within;
 
   // Allocte an array in shared memory, ut: u_temporary
-  __shared__ float ut[NI][NJ];
+  __shared__ float ut[NI][3];
 
   // Threads id
   ti = threadIdx.x; i =  ti  + blockIdx.x*blockDim.x; // blockDim.x = NI-2
-  tj = threadIdx.y; j = tj+1 + blockIdx.y*blockDim.y; // blockDim.x = NJ-2
+  tj = threadIdx.y; j = tj+1 + blockIdx.y*blockDim.y; // blockDim.x = NJ
 
   // compute domain index
   s = i+NX*(j-1); // node(j-1,i) 
-  o = i+NX*( j ); // node( j,i ) current thread
+  o = i+NX*( j ); // node( j,i ) <-- current thread
   n = i+NX*(j+1); // node(j+1,i) 
 
   // Initial shared memory planes
-  s_sh = 0;  
-  o_sh = 1;
-  n_sh = 2;
+  jp1_sh= 0; j_sh = 1; jm1_sh= 2;
+
+  // total number of cells in domain
+  ntot = NX*NY; 
 
   // read first two planes from global memory to shared memory
   // (if thread is not outside domain)
-  ntot = NX*NY; if (o<ntot) {ut[ti][o_sh] = u[o]; ut[ti][s_sh] = u[s];}
+  if (o < ntot) {ut[ti][jp1_sh] = u[o]; ut[ti][j_sh] = u[s];}
   __syncthreads();
 
-  ibool = i>0 && i<NX-1 && ti>0 && ti<NI-1;
+  // Is 0<i<NX-1 and 0<ti<NI-1 ?
+  within = i>0 && i<NX-1 && ti>0 && ti<NI-1;
 
-  // 
-  for (j_iter=0; j_iter < NJ_TILE; j_iter++) {
+  // Iterate over j-indexes
+  for (j_iter=0; j_iter < NJ; j_iter++) {
         
-        // read in the next plane
-        if (i0p1 < ntot) {
-            temp[ti][jp1_sh] = temp_in[i0p1];
-        }
-        __syncthreads();
+    // read in the next plane
+    // (if thread is not outside domain)
+    if (n < ntot) ut[ti][jp1_sh] = u[n];
+    __syncthreads();
 
-        // only compute if (a) thread is within the domain
-        // and (b) thread is not on boundary of a thread block
-        if (compute_i && j < nj-1) {
-	  
-	  // only update "interior" nodes
-	  un[o] = u[o]+ 
-	    KX*(ut[ti+1][tj]-2*ut[ti][tj]+ut[ti-1][tj])+ 
-	    KY*(ut[ti][tj+1]-2*ut[ti][tj]+ut[ti][tj-1]);
-	}
-        __syncthreads();
+    // compute only if (a) thread is within the domain
+    // and (b) thread is not on boundary of a thread block
+    if (within && j < NY-1) {
+      // update temperature
+      un[o] = u[o]+ 
+	KX*(ut[ti+1][j_sh]-2*ut[ti][j_sh]+ut[ti-1][j_sh])+ 
+	KY*(ut[ti][jp1_sh]-2*ut[ti][j_sh]+ut[ti][jm1_sh]);
+    }
+    __syncthreads();
+    
+    // Augment index
+    s+=NX; o+=NX; n+=NX; j+=1;
         
-        i00 += ni;
-        i0m1 += ni;
-        i0p1 += ni;
-        j+= 1;
-        
-        // swap shared memory planes
-        tmp_sh = jm1_sh;
-        jm1_sh = j_sh;
-        j_sh = jp1_sh;
-        jp1_sh = tmp_sh;
+    // Swap shared memory planes
+    tmp_sh=jm1_sh; jm1_sh=j_sh; j_sh=jp1_sh; jp1_sh=tmp_sh;
   } 
 }
 

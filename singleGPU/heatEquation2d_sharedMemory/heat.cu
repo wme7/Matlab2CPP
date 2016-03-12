@@ -371,14 +371,17 @@ int main(int argc, char *argv[])
     }
     
     // output temp1 to a file
-    fp = fopen("out.dat", "w");
-    fprintf(fp, "%i %i\n", ni, nj);
-    for (j=0; j < nj; j++) {
-        for (i=0; i < ni; i++) {
-            fprintf(fp, "%f\n", i, j, temp1_h[i + ni*j]);
+    FILE *pFile = fopen("result.txt", "w");
+    if (pFile != NULL) {
+      for (int j = 0; j < nj; j++) {
+        for (int i = 0; i < ni; i++) {      
+	  fprintf(pFile, "%d\t %d\t %g\n",j,i,temp1_h[i + ni*j]);
         }
+      }
+      fclose(pFile);
+    } else {
+    printf("Unable to save to file\n");
     }
-    fclose(fp);
 }
 
 
