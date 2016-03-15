@@ -70,6 +70,10 @@ void Save_Time(float *t){
   }
 }
 
+/******************************/
+/* TEMPERATURE INITIALIZATION */
+/******************************/
+
 void Set_IC(float *u0){
   int i, j, o, IC; 
 
@@ -243,7 +247,7 @@ __global__ void Laplace2d_GPU3(const float * __restrict__ u,float * __restrict__
 /*******************************************************/
 /* LAPLACE ITERATION FUNCTION - GPU - SHARED MEMORY V4 */
 /*******************************************************/
-/*
+
 __global__ void Laplace2d_GPU4(const float * __restrict__ u,float * __restrict__ un){
   // Allocate an array in shared memory, ut: u_temporary
   __shared__ float ut[NI+2][NJ+2];
@@ -253,26 +257,24 @@ __global__ void Laplace2d_GPU4(const float * __restrict__ u,float * __restrict__
   const int tj = threadIdx.y; const int j = tj + blockIdx.y*blockDim.y; // blockDim.y = NJ
 
   // compute local index
-  //const int k = threadIdx.x + blockDim.x*threadIdx.y;
+  const int k = threadIdx.x + blockDim.x*threadIdx.y;
 
   // share memory index
-  //const int i1 = k % (NI+2); const int i2 = (k + NI*NJ) % (NI+2);
-  //const int j1 = k / (NJ+2); const int j2 = (k + NI*NJ) / (NJ+2);
+  const int i1 = k % (NI+2); const int i2 = (k + NI*NJ) % (NI+2);
+  const int j1 = k / (NJ+2); const int j2 = (k + NI*NJ) / (NJ+2);
 
   // compute domain index
-  //const int o = i+NX*j; 
+  const int o = i+NX*j; 
   
   // read from global memory to shared memory
   // (if thread is not outside domain)
-  //if (i>=NX && j>=NY) return;
-  //if () {
-  //  ut[i1][j1] = u[o];
-  //}
-  //if () {
-  //  ut[i2][j2] = u[o];
-  //}
-
-  if (o<NY*NX) ut[ti+1][tj+1] = u[i+NX*j];
+  if (i>=NX && j>=NY) return;
+  if ((blockIdx.x*NI-1+i1)<NX && (blockIdx.y*NJ-1+i1)<NY) {
+    ut[i1][j1] = u[(blockIdx.x*NI-1+i1)+NX*(blockIdx.y*NJ-1+j1)];
+  }
+  if (i2<(NI+2) && j2<(NJ+2) && (blockIdx.x*NI-1+i2)<NX && (blockIdx.y*NJ-1+j2)<NY) {
+    ut[i2][j2] = u[(blockIdx.x*NI-1+i2)+NX*(blockIdx.y*NJ-1+j2)];
+  }
   
   __syncthreads();
 
@@ -285,7 +287,6 @@ __global__ void Laplace2d_GPU4(const float * __restrict__ u,float * __restrict__
       KY*(ut[ti][tj+1]-2*ut[ti][tj]+ut[ti][tj-1]);
   }
 }
-*/
 
 /*******************************************************/
 /* LAPLACE ITERATION FUNCTION - GPU - SHARED MEMORY V5 */
@@ -422,7 +423,6 @@ void Call_GPU_Laplace(float **d_u, float **d_un) {
     if (DEBUG) printf("CUDA error (Laplace GPU %d) %s\n",
 		      USE_GPU,cudaGetErrorString(cudaPeekAtLastError()));
   }
-  /*
   if (USE_GPU==4) { 
     // GPU - shared memory
     // set threads and blocks ( halo regions ARE loaded into shared memory )
@@ -435,7 +435,6 @@ void Call_GPU_Laplace(float **d_u, float **d_un) {
     if (DEBUG) printf("CUDA error (Laplace GPU %d) %s\n",
 		      USE_GPU,cudaGetErrorString(cudaPeekAtLastError()));
   }
-  */
   if (USE_GPU==5) {
     // GPU - shared memory - iterate upwards through block using a line of threads
     // set threads and blocks
