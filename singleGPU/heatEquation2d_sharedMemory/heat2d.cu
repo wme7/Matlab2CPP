@@ -141,11 +141,11 @@ void Laplace2d_CPU(float *u,float *un){
   } 
 }
 
-__global__ void Laplace2d_GPU1(float *u,float *un){
-  int i, j, o, n, s, e, w;
+__global__ void Laplace2d_GPU1(const float * __restrict__ u, float * __restrict__ un){
+  int o, n, s, e, w;
   // Threads id
-  i = threadIdx.x + blockIdx.x*blockDim.x;
-  j = threadIdx.y + blockIdx.y*blockDim.y;
+  const int i = threadIdx.x + blockIdx.x*blockDim.x;
+  const int j = threadIdx.y + blockIdx.y*blockDim.y;
 
   o =  i + NX*j ; // node( j,i )     n
   n = i+NX*(j+1); // node(j+1,i)     |
@@ -161,17 +161,50 @@ __global__ void Laplace2d_GPU1(float *u,float *un){
   }
 }
 
-__global__ void Laplace2d_GPU2(float *u,float *un){
-  int ti, tj, i, j, o;
+__global__ void Laplace2d_GPU2(const float * __restrict__ u, float * __restrict__ un){
+  int o, n ,s, e, w;
+  
+  // Threads id
+  const int ti = threadIdx.x; const int i = ti + blockIdx.x*blockDim.x; 
+  const int tj = threadIdx.y; const int j = tj + blockIdx.y*blockDim.y; 
+
+  // compute domain index
+  o = i+NX*( j ); // node( j,i )     n
+  n = i+NX*(j+1); // node(j+1,i)     |
+  s = i+NX*(j-1); // node(j-1,i)  w--o--e
+  e = (i+1)+NX*j; // node(j,i+1)     |
+  w = (i-1)+NX*j; // node(j,i-1)     s
+  
   // Allocte an array in shared memory, ut: u_temporary
+  __shared__ float ut[NI][NJ];
+  
+  // read from global memory to shared memory
+  // (if thread is not outside domain)
+  if (o<NY*NX) {ut[ti][tj] = u[o];}
+  __syncthreads();
+
+  // if interior elements, then use shared memory
+  if (ti>0 && ti<(NI-1) && tj>0 && tj<(NJ-1)) {
+    un[o] = u[o]+ 
+	KX*(ut[ti+1][tj]-2*ut[ti][tj]+ut[ti-1][tj])+
+	KY*(ut[ti][tj+1]-2*ut[ti][tj]+ut[ti][tj-1]);
+  }
+  // if halo elements, use use global memory 
+  else if(i>0 && i<NX-1 && j>0 && j<NY-1) {
+    un[o] = u[o] + KX*(u[e]-2*u[o]+u[w]) + KY*(u[n]-2*u[o]+u[s]);
+  }
+}
+
+__global__ void Laplace2d_GPU3(const float * __restrict__ u,float * __restrict__ un){
+  // Allocate an array in shared memory, ut: u_temporary
   __shared__ float ut[NI][NJ];
 
   // Threads id
-  ti = threadIdx.x; i = ti + blockIdx.x*(NI-2); // blockDim.x = NI-2
-  tj = threadIdx.y; j = tj + blockIdx.y*(NJ-2); // blockDim.y = NJ-2
+  const int ti = threadIdx.x; const int i = ti + blockIdx.x*(NI-2); // blockDim.x = NI-2
+  const int tj = threadIdx.y; const int j = tj + blockIdx.y*(NJ-2); // blockDim.y = NJ-2
 
   // compute domain index
-  o = i+NX*j; 
+  const int o = i+NX*j; 
   
   // read from global memory to shared memory
   // (if thread is not outside domain)
@@ -190,15 +223,15 @@ __global__ void Laplace2d_GPU2(float *u,float *un){
   } 
 }
 
-__global__ void Laplace2d_GPU3(float *u,float *un){
-  int ti, tj, i, j, o, n, s, jp1_sh, j_sh, jm1_sh, tmp_sh, ntot, j_iter; bool within;
+__global__ void Laplace2d_GPU4(const float * __restrict__ u,float * __restrict__ un){
+  int o, n, s, jp1_sh, j_sh, jm1_sh, tmp_sh, ntot, j_iter; bool within;
 
-  // Allocte an array in shared memory, ut: u_temporary
+  // Allocate an array in shared memory, ut: u_temporary
   __shared__ float ut[NI][3];
 
   // Threads id
-  ti = threadIdx.x; i =  ti  + blockIdx.x*(NI-2); // blockDim.x = NI-2
-  tj = threadIdx.y; j = tj+1 + blockIdx.y*( NJ ); // blockDim.x = NJ
+  const int ti = threadIdx.x; const int i =  ti  + blockIdx.x*(NI-2); // blockDim.x = NI-2
+  const int tj = threadIdx.y; const int j = tj+1 + blockIdx.y*( NJ ); // blockDim.x = NJ
 
   // compute domain index
   s = i+NX*(j-1); // node(j-1,i) 
@@ -229,7 +262,7 @@ __global__ void Laplace2d_GPU3(float *u,float *un){
 
     // compute only if (a) thread is within the domain
     // and (b) thread is not on boundary of a thread block
-    if (within && j < NY-1) {
+    if (within && k < NY-1) {
       // update temperature
       un[o] = u[o]+ 
 	KX*(ut[ti+1][j_sh]-2*ut[ti][j_sh]+ut[ti-1][j_sh])+ 
@@ -238,12 +271,38 @@ __global__ void Laplace2d_GPU3(float *u,float *un){
     __syncthreads();
     
     // Augment index
-    s+=NX; o+=NX; n+=NX; j+=1;
+    s+=NX; o+=NX; n+=NX; k+=1;
         
     // Swap shared memory planes
     tmp_sh=jm1_sh; jm1_sh=j_sh; j_sh=jp1_sh; jp1_sh=tmp_sh;
   } 
 }
+
+/* 
+__global__ void Laplace2d_GPU6(const float * __restrict__ u, float * __restrict__ un){
+  float o, n, w, s, e;
+  // Threads id
+  const int i = threadIdx.x + blockIdx.x*blockDim.x;
+  const int j = threadIdx.y + blockIdx.y*blockDim.y;
+  
+  if (flag) {
+    o = tex2D(texIn,i, j ); // node( j,i )     n
+    n = tex2D(texIn,i,j+1); // node(j+1,i)     |
+    s = tex2D(texIn,i,j-1); // node(j-1,i)  w--o--e
+    e = tex2D(texIn,i+1,j); // node(j,i+1)     |
+    w = tex2D(texIn,i-1,j); // node(j,i-1)     s
+  } else {
+    o = tex2D(texOut,i, j ); // node( j,i )     n
+    n = tex2D(texOut,i,j+1); // node(j+1,i)     |
+    s = tex2D(texOut,i,j-1); // node(j-1,i)  w--o--e
+    e = tex2D(texOut,i+1,j); // node(j,i+1)     |
+    w = tex2D(texOut,i-1,j); // node(j,i-1)     s
+  }
+
+  // only update threads within the domain
+  if(i>0 && i<NX-1 && j>0 && j<NY-1) un[i+NX*j] = o + KX*(e-2*o+w) + KY*(n-2*o+s);
+}
+*/
 
 void Call_CPU_Laplace(float **h_u, float **h_un) {
   // Produce one iteration of the laplace operator
@@ -271,17 +330,26 @@ void Call_GPU_Laplace(float **d_u, float **d_un) {
   }
   if (USE_GPU==2) { 
     // GPU - shared memory
-    // set threads and blocks 
-    // need to compute for n-2 nodes
-    // for each N_TILE threads, N_TILE-2 compute
-    // number of blocks in each dimension is (NX-2)/(NI-2), rounded upwards
-    dimGrid =dim3(DIVIDE_INTO(NX-2,NI-2),DIVIDE_INTO(NY-2,NJ-2),1); 
+    // set threads and blocks ( halo regions are NOT loaded into shared memory )
+    dimGrid =dim3(DIVIDE_INTO(NX,NI),DIVIDE_INTO(NY,NJ),1); 
     dimBlock=dim3(NI,NJ,1);
     Laplace2d_GPU2<<<dimGrid,dimBlock>>>(*d_u,*d_un);
     if (DEBUG) printf("CUDA error (Laplace GPU %d) %s\n",
 		      USE_GPU,cudaGetErrorString(cudaPeekAtLastError()));
   }
-  if (USE_GPU==3) {
+  if (USE_GPU==3) { 
+    // GPU - shared memory
+    // set threads and blocks ( halo regions ARE loaded into shared memory )
+    // need to compute for n-2 nodes
+    // for each N_TILE threads, N_TILE-2 compute
+    // number of blocks in each dimension is (NX-2)/(NI-2), rounded upwards
+    dimGrid =dim3(DIVIDE_INTO(NX-2,NI-2),DIVIDE_INTO(NY-2,NJ-2),1); 
+    dimBlock=dim3(NI,NJ,1);
+    Laplace2d_GPU3<<<dimGrid,dimBlock>>>(*d_u,*d_un);
+    if (DEBUG) printf("CUDA error (Laplace GPU %d) %s\n",
+		      USE_GPU,cudaGetErrorString(cudaPeekAtLastError()));
+  }
+  if (USE_GPU==4) {
     // GPU - shared memory - iterate upwards through block using a line of threads
     // set threads and blocks
     // need to compute for n-2 nodes
@@ -289,10 +357,21 @@ void Call_GPU_Laplace(float **d_u, float **d_un) {
     // number of blocks in each dimension is (n-2)/(N_TILE-2), rounded upwards
     dimGrid =dim3(DIVIDE_INTO(NX-2,NI-2),DIVIDE_INTO(NY-2,NJ),1); 
     dimBlock=dim3(NI,1,1);
-    Laplace2d_GPU3<<<dimGrid,dimBlock>>>(*d_u,*d_un);
+    Laplace2d_GPU4<<<dimGrid,dimBlock>>>(*d_u,*d_un);
     if (DEBUG) printf("CUDA error (Laplace GPU %d) %s\n",
 		      USE_GPU,cudaGetErrorString(cudaPeekAtLastError()));
   }
+  /*
+   if (USE_GPU==6) { 
+    // GPU - texture memory
+    // set threads and blocks 
+    dimGrid =dim3(DIVIDE_INTO(NX,NI),DIVIDE_INTO(NY,NJ),1); 
+    dimBlock=dim3(NI,NJ,1);
+    Laplace2d_GPU6<<<dimGrid,dimBlock>>>(*d_u,*d_un);
+    if (DEBUG) printf("CUDA error (Laplace GPU %d) %s\n",
+		      USE_GPU,cudaGetErrorString(cudaPeekAtLastError()));
+		      }
+  */
   cudaError_t Error = cudaDeviceSynchronize();
   if (DEBUG) printf("CUDA error (Laplace GPU %d Synchronize) %s\n",USE_GPU,cudaGetErrorString(Error));
 }

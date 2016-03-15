@@ -24,8 +24,10 @@
 
 // set USE_CPU to 1 to run only on CPU
 // set USE_GPU to 1 to use GPU kernel - without shared mem
-// set USE_GPU to 2 to use GPU kernel - with shared mem
+// set USE_GPU to 2 to use GPU kernel - with shared mem_v1
 // set USE_GPU to 3 to use GPU kernel - with shared mem_v2
+// set USE_GPU to 4 to use GPU kernel - with shared mem_v3
+// set USE_GPU to 6 to use GPU kernel - with texture memory
 #define USE_CPU 0  // set 1 to select the CPU kernel 
 #define USE_GPU 3  // select the No. of GPU kernel to use
 
