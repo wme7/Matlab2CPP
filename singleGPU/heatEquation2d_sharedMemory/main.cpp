@@ -26,6 +26,7 @@ int main() {
 
   if (USE_CPU==1) {
     // Solve with CPU
+    printf("Using CPU solver\n");
     for (int step=0; step < NO_STEPS; step+=2) {
       if (step%10000==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
       // Compute Laplace stencil
@@ -34,6 +35,7 @@ int main() {
     }
   } else {
     // Solve with GPU
+    printf("Using GPU solver: %d\n",USE_GPU);
     for (int step=0; step < NO_STEPS; step+=2) {
       if (step%10000==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
       // Compute Laplace stencil
@@ -45,7 +47,7 @@ int main() {
   }
 
   // Measure and Report computation time
-  t = clock()-t; printf("CPU time (%f seconds).\n",((float)t)/CLOCKS_PER_SEC);
+  t = clock()-t; printf("Computing time (%f seconds).\n",((float)t)/CLOCKS_PER_SEC);
 
   // Write solution to file
   Save_Results(h_u); 
