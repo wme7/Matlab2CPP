@@ -26,54 +26,6 @@ void Manage_Memory(int phase, int tid, float **h_u, float **d_u, float **d_un){
   }
 }
 
-__global__ void SetIC_onDevice(float *u){
-  // threads id 
-  int i = threadIdx.x + blockIdx.x*blockDim.x;
-  int j = threadIdx.y + blockIdx.y*blockDim.y;
-  int o = i+NX*j; u[o] = 0.0;
-  // but ...
-  if (i==0)    u[o] = 0.0;
-  if (j==0)    u[o] = 0.0;
-  if (i==NX-1) u[o] = 1.0;
-  if (j==NY-1) u[o] = 1.0;
-}
-
-void Call_GPU_Init(float **u0){
-  // Load the initial condition
-  dim3 threads(16,16);
-  dim3 blocks(NX/16,NY/16); 
-  SetIC_onDevice<<<blocks, threads>>>(*u0);
-}
-
-__global__ void Laplace2d(float *u,float *un){
-  // Threads id
-  int i = threadIdx.x + blockIdx.x*blockDim.x;
-  int j = threadIdx.y + blockIdx.y*blockDim.y;
-
-  int o =  i + NX*j ; // node( j,i )     n
-  int n = i+NX*(j+1); // node(j+1,i)     |
-  int s = i+NX*(j-1); // node(j-1,i)  w--o--e
-  int e = (i+1)+NX*j; // node(j,i+1)     |
-  int w = (i-1)+NX*j; // node(j,i-1)     s
-
-  // only update "interior" nodes
-  if(i>0 && i<NX-1 && j>0 && j<NY-1) {
-    un[o] = u[o] + KX*(u[e]-2*u[o]+u[w]) + KY*(u[n]-2*u[o]+u[s]);
-  } else {
-    un[o] = u[o];
-  }
-}
-
-void Call_Laplace(float **d_u, float **d_un) {
-  // Produce one iteration of the laplace operator
-  dim3 threads(32,32);
-  dim3 blocks(NX/32,NX/32); 
-  Laplace2d<<<blocks,threads>>>(*d_u,*d_un);
-  if (DEBUG) printf("CUDA error (Jacobi_Method) %s\n",cudaGetErrorString(cudaPeekAtLastError()));
-  cudaError_t Error = cudaDeviceSynchronize();
-  if (DEBUG) printf("CUDA error (Jacobi_Method Synchronize) %s\n",cudaGetErrorString(Error));
-}
-
 void Manage_Comms(int phase, int tid, float **h_u, float **d_u) {
   // Manage CPU-GPU communicastions
   if (DEBUG) printf(":::::::: Performing Comms (phase %d) ::::::::\n",phase);
@@ -90,22 +42,6 @@ void Manage_Comms(int phase, int tid, float **h_u, float **d_u) {
   }
 }
 
-__global__ void Update_Domain(float *u,float *un){
-  int i = threadIdx.x + blockIdx.x*blockDim.x;
-  int j = threadIdx.y + blockIdx.y*blockDim.y;
-  int o = i+NX*j; u[o] = un[o];
-}
-
-void Call_Update(float **u, float **un){
-  // produce explicitly: u=un;
-  dim3 threads(32,32);
-  dim3 blocks(NX/32,NX/32); 
-  Update_Domain<<<blocks,threads>>>(*u,*un);
-  if (DEBUG) printf("CUDA error (Jacobi_Method) %s\n",cudaGetErrorString(cudaPeekAtLastError()));
-  cudaError_t Error = cudaDeviceSynchronize();
-  if (DEBUG) printf("CUDA error (Jacobi_Method Synchronize) %s\n",cudaGetErrorString(Error));
-}
-
 void Save_Results(float *u){
   // print result to txt file
   FILE *pFile = fopen("result.txt", "w");
@@ -119,4 +55,53 @@ void Save_Results(float *u){
   } else {
     printf("Unable to save to file\n");
   }
+}
+
+__global__ void SetIC_onDevice(float *u){
+  // threads id 
+  int i = threadIdx.x + blockIdx.x*blockDim.x;
+  int j = threadIdx.y + blockIdx.y*blockDim.y;
+  int o = i+NX*j; u[o] = 0.0;
+  // but ...
+  if (i==0)    u[o] = 0.0;
+  if (j==0)    u[o] = 0.0;
+  if (i==NX-1) u[o] = 1.0;
+  if (j==NY-1) u[o] = 1.0;
+}
+
+void Call_GPU_Init(float **u0){
+  // Load the initial condition
+  dim3 threads(16,16);
+  dim3 blocks((NX+16+1)/16,(NY+16+1)/16); 
+  SetIC_onDevice<<<blocks, threads>>>(*u0);
+}
+
+__global__ void Laplace2d(const float * __restrict__ u, float * __restrict__ un){
+  int o, n, s, e, w; 
+  // Threads id
+  const int i = threadIdx.x + blockIdx.x*blockDim.x;
+  const int j = threadIdx.y + blockIdx.y*blockDim.y;
+
+  o = i + (NX*j);         // node( j,i,k )      n
+  n = (i==NX-1) ? o:o+NX; // node(j+1,i,k)      |
+  s = (i==0)    ? o:o-NX; // node(j-1,i,k)   w--o--e
+  e = (j==NY-1) ? o:o+1;  // node(j,i+1,k)      |
+  w = (j==0)    ? o:o-1;  // node(j,i-1,k)      s
+
+  // only update "interior" nodes
+  if(i>0 && i<NX-1 && j>0 && j<NY-1) {
+    un[o] = u[o] + KX*(u[e]-2*u[o]+u[w]) + KY*(u[n]-2*u[o]+u[s]);
+  } else {
+    un[o] = u[o];
+  }
+}
+
+void Call_Laplace(float **d_u, float **d_un) {
+  // Produce one iteration of the laplace operator
+  dim3 threads(16,16);
+  dim3 blocks((NX+16+1)/16,(NX+16+1)/16); 
+  Laplace2d<<<blocks,threads>>>(*d_u,*d_un);
+  if (DEBUG) printf("CUDA error (Jacobi_Method) %s\n",cudaGetErrorString(cudaPeekAtLastError()));
+  cudaError_t Error = cudaDeviceSynchronize();
+  if (DEBUG) printf("CUDA error (Jacobi_Method Synchronize) %s\n",cudaGetErrorString(Error));
 }

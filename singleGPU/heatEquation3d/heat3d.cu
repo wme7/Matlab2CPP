@@ -46,12 +46,13 @@ void Manage_Comms(int phase, float **h_u, float **d_u) {
 
 void Save_Results(float *u){
   // print result to txt file
-  FILE *pFile = fopen("result.txt", "w");
+  FILE *pFile = fopen("result.txt", "w");  
+  const int XY=NX*NY;
   if (pFile != NULL) {
     for (int k = 0;k < NZ; k++) {
       for (int j = 0; j < NY; j++) {
 	for (int i = 0; i < NX; i++) {      
-	  fprintf(pFile, "%d\t %d\t %d\t %g\n",k,j,i,u[i+NX*j+NY*NX*k]);
+	  fprintf(pFile, "%d\t %d\t %d\t %g\n",k,j,i,u[i+NX*j+XY*k]);
 	}
       }
     }
@@ -77,7 +78,7 @@ void Save_Time(float *t){
 /******************************/
 
 void Set_IC(float *u0){
-  int i, j, k, o, IC; 
+  int i, j, k, o, IC;  const int XY=NX*NY;
 
   // select IC
   IC=2;
@@ -88,7 +89,7 @@ void Set_IC(float *u0){
       for (j = 0; j < NY; j++) {
 	for (i = 0; i < NX; i++) {
 	  // set all domain's cells equal to zero
-	  o = i+NX*j+NY*NX*k;  u0[o] = 0.0;
+	  o = i+NX*j+XY*k;  u0[o] = 0.0;
 	  // set BCs in the domain 
 	  if (k==0)    u0[o] = 1.0; // bottom
 	  if (k==NZ-1) u0[o] = 1.0; // top
@@ -102,11 +103,11 @@ void Set_IC(float *u0){
       for (j = 0; j < NY; j++) {
 	for (i = 0; i < NX; i++) {
 	  // set all domain's cells equal to zero
-	  o = i+NX*j+NY*NX*k;  
+	  o = i+NX*j+XY*k;  
 	  u0[o] = 1.0*exp(
-			  -(DX*(i-NX/2))*(DX*(i-NX/2))/2
-			  -(DY*(j-NY/2))*(DY*(j-NY/2))/2
-			  -(DZ*(k-NZ/2))*(DZ*(k-NZ/2))/4);
+			  -(DX*(i-NX/2))*(DX*(i-NX/2))/1.5
+			  -(DY*(j-NY/2))*(DY*(j-NY/2))/1.5
+			  -(DZ*(k-NZ/2))*(DZ*(k-NZ/2))/12);
 	}
       }
     }
@@ -126,29 +127,22 @@ void Call_Init(float **u0){
 /************************************/
 
 void Laplace2d_CPU(float *u,float *un){
-  // Using (i,j) = [i+N*j] indexes
-  int i, j, k, o, n, s, e, w, t, b;
+  // Using (i,j) = [i+N*j+M*N*k] indexes
+  int i, j, k, o, n, s, e, w, t, b; 
+  const int XY=NX*NY;
   for (j = 0; j < NY; j++) {
     for (i = 0; i < NX; i++) {
       for (k = 0; k < NZ; k++) {
 	
-        o =  i + NX*j +NY*NX*k; // node( j,i,k )      n  b
-	n = i+NX*(j+1)+NY*NX*k; // node(j+1,i,k)      | /
-	s = i+NX*(j-1)+NY*NX*k; // node(j-1,i,k)      |/
-	e = (i+1)+NX*j+NY*NX*k; // node(j,i+1,k)  w---o---e
-	w = (i-1)+NX*j+NY*NX*k; // node(j,i-1,k)     /|
-	t = i+NX*j+NY*NX*(k+1); // node(j,i,k+1)    / |
-	b = i+NX*j+NY*NX*(k-1); // node(j,i,k-1)   t  s
+	o = i+ (NX*j) + (XY*k); // node( j,i,k )      n  b
+	n = (i==NX-1) ? o:o+NX; // node(j+1,i,k)      | /
+	s = (i==0)    ? o:o-NX; // node(j-1,i,k)      |/
+	e = (j==NY-1) ? o:o+1;  // node(j,i+1,k)  w---o---e
+	w = (j==0)    ? o:o-1;  // node(j,i-1,k)     /|
+	t = (k==NZ-1) ? o:o+XY; // node(j,i,k+1)    / |
+	b = (k==0)    ? o:o-XY; // node(j,i,k-1)   t  s
 
-	// only update "interior" nodes
-	if(i>0 && i<NX-1 && j>0 && j<NY-1 && k>0 && k<NZ-1) {
-	  un[o] = u[o] + 
-	    KX*(u[e]-2*u[o]+u[w]) + 
-	    KY*(u[n]-2*u[o]+u[s]) + 
-	    KZ*(u[t]-2*u[o]+u[b]) ;
-	} else {
-	  un[o] = u[o];
-	}
+	un[o] = u[o] + KX*(u[e]-2*u[o]+u[w]) + KY*(u[n]-2*u[o]+u[s]) + KZ*(u[t]-2*u[o]+u[b]);
       }
     } 
   }
@@ -159,29 +153,22 @@ void Laplace2d_CPU(float *u,float *un){
 /************************************************************/
 
 __global__ void Laplace2d_GPU1(const float * __restrict__ u, float * __restrict__ un){
-  int o, n, s, e, w, t, b;
+  int o, n, s, e, w, t, b;  
+  const int XY=NX*NY;
   // Threads id
   const int i = threadIdx.x + blockIdx.x*blockDim.x;
   const int j = threadIdx.y + blockIdx.y*blockDim.y;
   const int k = threadIdx.z + blockIdx.z*blockDim.z;
 
-  o =  i + NX*j +NY*NX*k; // node( j,i,k )      n  b
-  n = i+NX*(j+1)+NY*NX*k; // node(j+1,i,k)      | /
-  s = i+NX*(j-1)+NY*NX*k; // node(j-1,i,k)      |/
-  e = (i+1)+NX*j+NY*NX*k; // node(j,i+1,k)  w---o---e  
-  w = (i-1)+NX*j+NY*NX*k; // node(j,i-1,k)     /| 
-  t = i+NX*j+NY*NX*(k+1); // node(j,i,k+1)    / |
-  b = i+NX*j+NY*NX*(k-1); // node(j,i,k-1)   t  s
+  o = i+ (NX*j) + (XY*k); // node( j,i,k )      n  b
+  n = (i==NX-1) ? o:o+NX; // node(j+1,i,k)      | /
+  s = (i==0)    ? o:o-NX; // node(j-1,i,k)      |/
+  e = (j==NY-1) ? o:o+1;  // node(j,i+1,k)  w---o---e
+  w = (j==0)    ? o:o-1;  // node(j,i-1,k)     /|
+  t = (k==NZ-1) ? o:o+XY; // node(j,i,k+1)    / |
+  b = (k==0)    ? o:o-XY; // node(j,i,k-1)   t  s
 
-  // only update threads within the domain
-  if(i>0 && i<NX-1 && j>0 && j<NY-1 && k>0 && k<NZ-1) {
-    un[o] = u[o] + 
-      KX*(u[e]-2*u[o]+u[w]) + 
-      KY*(u[n]-2*u[o]+u[s]) + 
-      KZ*(u[t]-2*u[o]+u[b]) ;
-  } else {
-    un[o] = u[o];
-  }
+  un[o] = u[o] + KX*(u[e]-2*u[o]+u[w]) + KY*(u[n]-2*u[o]+u[s]) + KZ*(u[t]-2*u[o]+u[b]);
 }
 
 void Call_CPU_Laplace(float **h_u, float **h_un) {

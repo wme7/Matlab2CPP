@@ -4,9 +4,9 @@
 #include <math.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 64 // number of cells in the x-direction
-#define NY 64 // number of cells in the y-direction
-#define NZ 128 // number of cells in the y-direction
+#define NX 128 // number of cells in the x-direction
+#define NY 128 // number of cells in the y-direction
+#define NZ 256 // number of cells in the y-direction
 #define L 10.0 // domain length
 #define W 10.0 // domain width
 #define H 20.0 // domain width
@@ -21,15 +21,15 @@
 #define KZ (C*DT/(DZ*DZ)) // numerical conductivity
 #define NO_STEPS (TEND/DT) // No. of time steps
 #define PI 3.1415926535897932f
-#define NI 32 // block size in the i-direction
-#define NJ 32 // block size in the j-direction
-#define NK 3  // block size in the j-direction	
+#define NI 16 // block size in the i-direction
+#define NJ 16 // block size in the j-direction
+#define NK 4  // block size in the k-direction	
 #define I2D(n,i,j) ((i)+(n)*(j)) // transfrom a 2D array index pair into linear index memory
 #define DIVIDE_INTO(x,y) (((x)+(y)-1)/(y)) // define No. of blocks/warps
 
 // set USE_CPU to 1 to run only on CPU
 // set USE_GPU to 1 to use GPU kernel - without shared mem
-#define USE_CPU 1  // set 1 use only the CPU kernel 
+#define USE_CPU 0  // set 1 use only the CPU kernel 
 #define USE_GPU 1  // select the No. of GPU kernel to use
 
 /* Declare functions */

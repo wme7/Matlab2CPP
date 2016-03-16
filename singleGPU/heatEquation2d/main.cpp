@@ -20,25 +20,13 @@ int main() {
   // Request computer current time
   time_t t = clock();
 
-  // Solver Loop (version 1)
-  /*for (int step=0; step < NO_STEPS; step++) {
-    if (step%100==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
-
-    // Compute stencil
-    Call_Laplace(&d_u,&d_un);
-    
-    // Update solution, u=un;
-    Call_Update(&d_u,&d_un);
-  }*/
-  // Solver Loop (version 2)
+  // Solver Loop 
   for (int step=0; step < NO_STEPS; step+=2) {
     if (step%100==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
 
     // Compute stencil
-    Call_Laplace(&d_u,&d_un);
-
-    // Compute stencil (again)
-    Call_Laplace(&d_un,&d_u);
+    Call_Laplace(&d_u,&d_un); // 1sr iter
+    Call_Laplace(&d_un,&d_u); // 2nd iter
   }
   // Copy data from device -> host
   Manage_Comms(1,0,&h_u,&d_u);
