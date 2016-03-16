@@ -105,10 +105,10 @@ void Initialize(float * __restrict h_T, const int NX, const int NY)
 /********/
 int main()
 {
-	const int NX = 256;			// --- Number of discretization points along the x axis
-	const int NY = 256;			// --- Number of discretization points along the y axis
+	const int NX = 256;	// --- Number of discretization points along the x axis
+	const int NY = 256;	// --- Number of discretization points along the y axis
 
-	const int MAX_ITER = 100;	// --- Number of Jacobi iterations
+	const int MAX_ITER=100;	// --- Number of Jacobi iterations
 
     // --- CPU temperature distributions
     float *h_T			= (float *)calloc(NX * NY, sizeof(float));
@@ -186,8 +186,8 @@ int main()
 	printf("Timing with texture = %f ms\n", timerGPU.GetCounter());
 
 	// --- Copy results from device to host
-    gpuErrchk(cudaMemcpy(h_T_GPU_result,	 d_T,	  NX * NY * sizeof(float), cudaMemcpyDeviceToHost));
-    gpuErrchk(cudaMemcpy(h_T_GPU_tex_result, d_T_tex, NX * NY * sizeof(float), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaMemcpy(h_T_GPU_result,     d_T,     NX*NY*sizeof(float), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaMemcpy(h_T_GPU_tex_result, d_T_tex, NX*NY*sizeof(float), cudaMemcpyDeviceToHost));
 	
 	// --- Calculate percentage root mean square error between host and device results
 	float sum = 0.f, sum_tex = 0.f, sum_ref = 0.f, sum_sh1 = 0.f, sum_sh2 = 0.f, sum_sh3 = 0.f;

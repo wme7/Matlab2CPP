@@ -4,9 +4,9 @@
 #include <math.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 128 // number of cells in the x-direction
-#define NY 128 // number of cells in the y-direction
-#define NZ 256 // number of cells in the y-direction
+#define NX 256 // number of cells in the x-direction
+#define NY 256 // number of cells in the y-direction
+#define NZ 512 // number of cells in the z-direction
 #define L 10.0 // domain length
 #define W 10.0 // domain width
 #define H 20.0 // domain width
