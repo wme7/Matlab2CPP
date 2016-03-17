@@ -1,3 +1,5 @@
+/* compile as: nvcc bindlessTexture.cu */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>

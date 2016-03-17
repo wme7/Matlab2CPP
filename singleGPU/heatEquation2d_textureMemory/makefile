@@ -3,16 +3,9 @@ CUDA_LIB := -L $(CUDA_INSTALL_PATH)/lib64 -lcuda -lcudart
 
 all: MAIN
 
-MAIN: CPU_CORE GPU_CORE
-	g++ main.o heat2d.o $(CUDA_LIB) -O3 -o heat2d.run
-
-CPU_CORE: main.cpp
-	nvcc -O3 -c main.cpp 
-
-GPU_CORE: heat2d.cu
-	nvcc -O3 -arch compute_35 -c heat2d.cu
+MAIN: main.cu
+	nvcc $(CUDA_LIB) -O3 main.cu -o heat2d_Tex.run
 
 clean:
-	rm *.o
 	rm *.txt
 	rm *.run
