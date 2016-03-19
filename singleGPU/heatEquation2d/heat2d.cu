@@ -57,22 +57,59 @@ void Save_Results(float *u){
   }
 }
 
-__global__ void SetIC_onDevice(float *u){
+/******************************/
+/* TEMPERATURE INITIALIZATION */
+/******************************/
+__global__ void SetIC_onDevice(float *u0){
+int i, j, o, IC; 
   // threads id 
-  int i = threadIdx.x + blockIdx.x*blockDim.x;
-  int j = threadIdx.y + blockIdx.y*blockDim.y;
-  int o = i+NX*j; u[o] = 0.0;
-  // but ...
-  if (i==0)    u[o] = 0.0;
-  if (j==0)    u[o] = 0.0;
-  if (i==NX-1) u[o] = 1.0;
-  if (j==NY-1) u[o] = 1.0;
+  i = threadIdx.x + blockIdx.x*blockDim.x;
+  j = threadIdx.y + blockIdx.y*blockDim.y;
+
+  // select IC
+  IC=2;
+
+  switch (IC) {
+  case 1: {
+	// set all domain's cells equal to zero
+	o = i+NX*j;  u0[o] = 0.0;
+	// set BCs in the domain 
+	if (j==0)    u0[o] = 0.0; // bottom
+	if (i==0)    u0[o] = 0.0; // left
+	if (j==NY-1) u0[o] = 1.0; // top
+	if (i==NX-1) u0[o] = 1.0; // right
+    break;
+  }
+  case 2: {
+    float u_bl = 0.7f;
+    float u_br = 1.0f;
+    float u_tl = 0.7f;
+    float u_tr = 1.0f;
+
+	// set all domain's cells equal to zero
+	o = i+NX*j;  u0[o] = 0.0;
+	// set BCs in the domain 
+	if (j==0)    u0[o] = u_bl + (u_br-u_bl)*i/(NX+1); // bottom
+	if (j==NY-1) u0[o] = u_tl + (u_tr-u_tl)*i/(NX+1); // top
+	if (i==0)    u0[o] = u_bl + (u_tl-u_bl)*j/(NY+1); // left
+	if (i==NX-1) u0[o] = u_br + (u_tr-u_br)*j/(NY+1); // right
+    break;
+  }
+  case 3: {
+	// set all domain's cells equal to zero
+	o = i+NX*j;  u0[o] = 0.0;
+	// set left wall to 1
+	if (i==NX-1) u0[o] = 1.0;
+    break;
+  }
+    // here to add another IC
+  }
 }
 
 void Call_GPU_Init(float **u0){
   // Load the initial condition
-  dim3 threads(16,16);
-  dim3 blocks((NX+16+1)/16,(NY+16+1)/16); 
+  dim3 threads(32,32);
+  dim3 blocks((NX+1)/32,(NY+1)/32); 
   SetIC_onDevice<<<blocks, threads>>>(*u0);
 }
 
@@ -98,8 +135,8 @@ __global__ void Laplace2d(const float * __restrict__ u, float * __restrict__ un)
 
 void Call_Laplace(float **d_u, float **d_un) {
   // Produce one iteration of the laplace operator
-  dim3 threads(16,16);
-  dim3 blocks((NX+16+1)/16,(NX+16+1)/16); 
+  dim3 threads(32,32);
+  dim3 blocks((NX+1)/32,(NY+1)/32); 
   Laplace2d<<<blocks,threads>>>(*d_u,*d_un);
   if (DEBUG) printf("CUDA error (Jacobi_Method) %s\n",cudaGetErrorString(cudaPeekAtLastError()));
   cudaError_t Error = cudaDeviceSynchronize();
