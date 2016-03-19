@@ -16,18 +16,61 @@ void Manage_Memory(int phase, int tid, float **h_u, float **h_un){
   }
 }
 
-void Set_IC(float *u0){
-  // set all domain equal to zero
-  int o;
-  for (int j = 0; j < NY; j++) {
-    for (int i = 0; i < NX; i++) {
-      o = i+NX*j;  u0[o] = 0.0;
-      // but ...
-      if (i==0)    u0[o] = 0.0;
-      if (j==0)    u0[o] = 0.0; 
-      if (i==NX-1) u0[o] = 1.0;
-      if (j==NY-1) u0[o] = 1.0;
+/******************************/
+/* TEMPERATURE INITIALIZATION */
+/******************************/
+void Set_IC(float * __restrict u0){
+  int i, j, o, IC; 
+
+  // select IC
+  IC=2;
+
+  switch (IC) {
+  case 1: {
+    for (j = 0; j < NY; j++) {
+      for (i = 0; i < NX; i++) {
+	// set all domain's cells equal to zero
+	o = i+NX*j;  u0[o] = 0.0;
+	// set BCs in the domain 
+	if (j==0)    u0[o] = 0.0; // bottom
+	if (i==0)    u0[o] = 0.0; // left
+	if (j==NY-1) u0[o] = 1.0; // top
+	if (i==NX-1) u0[o] = 1.0; // right
+      }
     }
+    break;
+  }
+  case 2: {
+    float u_bl = 0.7f;
+    float u_br = 1.0f;
+    float u_tl = 0.7f;
+    float u_tr = 1.0f;
+
+    for (j = 0; j < NY; j++) {
+      for (i = 0; i < NX; i++) {
+	// set all domain's cells equal to zero
+	o = i+NX*j;  u0[o] = 0.0;
+	// set BCs in the domain 
+	if (j==0)    u0[o] = u_bl + (u_br-u_bl)*i/(NX+1); // bottom
+	if (j==NY-1) u0[o] = u_tl + (u_tr-u_tl)*i/(NX+1); // top
+	if (i==0)    u0[o] = u_bl + (u_tl-u_bl)*j/(NY+1); // left
+	if (i==NX-1) u0[o] = u_br + (u_tr-u_br)*j/(NY+1); // right
+      }
+    }
+    break;
+  }
+  case 3: {
+    for (j = 0; j < NY; j++) {
+      for (i = 0; i < NX; i++) {
+	// set all domain's cells equal to zero
+	o = i+NX*j;  u0[o] = 0.0;
+	// set left wall to 1
+	if (i==NX-1) u0[o] = 1.0;
+      }
+    }
+    break;
+  }
+    // here to add another IC
   }
 }
 

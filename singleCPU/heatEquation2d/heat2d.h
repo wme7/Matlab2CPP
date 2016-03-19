@@ -4,10 +4,10 @@
 #include <math.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 128 // number of cells in the x-direction
-#define NY 128 // number of cells in the y-direction
-#define L 1.0 // domain length
-#define W 1.0 // domain width
+#define NX 2048 // number of cells in the x-direction
+#define NY 2048 // number of cells in the y-direction
+#define L 10.0 // domain length
+#define W 10.0 // domain width
 #define C 1.0 // c, material conductivity. Uniform assumption.
 #define TEND 1.0 // tEnd, output time
 #define DX (L/NX) // dx, cell size

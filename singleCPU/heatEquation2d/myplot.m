@@ -9,5 +9,3 @@ S = reshape(result(:,3),nx,ny);
 h = surf(x,y,S,'EdgeColor','none'); %colormap hot;
 axis equal;
 axis tight;
-
-print('heat2d','-dpng')
