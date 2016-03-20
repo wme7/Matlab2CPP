@@ -17,8 +17,9 @@
 #define KY (C*DT/(DY*DY)) // numerical conductivity
 #define NO_STEPS (TEND/DT) // No. of time steps
 #define PI 3.1415926535897932f
-#define NI 64 // block size in the i-direction
-#define NJ 8  // block size in the j-direction
+#define NI 128 // block size in the i-direction
+#define NJ 4 // block size in the j-direction
+#define RADIUS 1 // cells width of the hallo region
 #define I2D(n,i,j) ((i)+(n)*(j)) // transfrom a 2D array index pair into linear index memory
 #define DIVIDE_INTO(x,y) (((x)+(y)-1)/(y)) // define No. of blocks/warps
 
@@ -27,7 +28,7 @@
 // set USE_GPU to 2 to use GPU kernel - with shared mem_v2 (without halo regions)
 // set USE_GPU to 3 to use GPU kernel - with shared mem_v3 (with halo regions)
 // set USE_GPU to 4 to use GPU kernel - with shared mem_v4 (with halo regions v2)
-// set USE_GPU to 5 to use GPU kernel - with shared mem_v5 (64x4 tile for coalescing optimization)
+// set USE_GPU to 5 to use GPU kernel - with shared mem_v5 (128x4 tile for coalescing optimization)
 // set USE_GPU to 6 to use GPU kernel - with texture memory
 #define USE_CPU 0  // set 1 to select the CPU kernel 
 #define USE_GPU 4  // select the No. of GPU kernel to use
