@@ -16,7 +16,10 @@
 #define PI 3.1415926535897932f
 
 /* Declare functions */
-void Manage_Memory(int phase, float **h_u, float **h_un);
-void Call_Laplace(float **h_u, float **h_un);
+void Manage_Memory(int phase, float **h_u, float **d_u, float **d_un);
+void Manage_Comms(int phase, float **h_u, float **d_un);
+
 void Call_Init(float **h_u);
+void Call_GPU_Init(float **d_u);
+void Call_Laplace(float **d_u,float **d_un);
 void Save_Results(float *h_u);

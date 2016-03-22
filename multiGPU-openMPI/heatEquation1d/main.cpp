@@ -4,13 +4,12 @@
 #include "heat1d.h"
 
 // Our local function declaration
-void Init(float *h_a);							// Initialize our flow field
-void Save_Result(float *h_a);					// Save our result to file
+void Init(float *h_a);				// Initialize our flow field
+void Save_Result(float *h_a);			// Save our result to file
 void Copy_To_Friends(int rank, float **h_a);	// Distribute data to slaves
 void Copy_From_Friends(int rank, float **h_a);	// Collect data from slaves
-void Pass_BC_Right(int rank, float **h_a);		// Pass right-end B/C 
-void Pass_BC_Left(int rank, float **h_a);		// Pass left-end B/C
-
+void Pass_BC_Right(int rank, float **h_a);	// Pass right-end B/C 
+void Pass_BC_Left(int rank, float **h_a);	// Pass left-end B/C
 
 int main() {
 	
