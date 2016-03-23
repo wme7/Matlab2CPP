@@ -19,12 +19,12 @@ int main() {
   Manage_Memory(1,&h_u,&h_un,&d_u,&d_un);
 
   // Copy domain from host -> device
-  Manage_Comms(0,&h_u,&d_u);
+  /*Manage_Comms(0,&h_u,&d_u);*/
 
   // Request computer current time
   time_t t = clock();
 
-  if (USE_CPU==1) {
+  //if (USE_CPU==1) {
     // Solve with CPU
     printf("Using CPU solver\n");
     for (int step=0; step < NO_STEPS; step+=2) {
@@ -33,7 +33,7 @@ int main() {
       Call_CPU_Laplace(&h_u,&h_un); // 1st iter 
       Call_CPU_Laplace(&h_un,&h_u); // 2nd iter
     }
-  } else {
+  /*} else {
     // Solve with GPU
     printf("Using GPU solver: %d\n",USE_GPU);
     for (int step=0; step < NO_STEPS; step+=2) {
@@ -44,7 +44,7 @@ int main() {
     }
     // Copy domain from device -> host
     Manage_Comms(1,&h_u,&d_u);
-  }
+  }*/
 
   // Measure and Report computation time
   t = clock()-t; printf("Computing time (%f seconds).\n",((float)t)/CLOCKS_PER_SEC);

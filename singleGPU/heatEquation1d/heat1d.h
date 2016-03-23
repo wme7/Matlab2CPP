@@ -5,7 +5,7 @@
 #include <omp.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 10000000 // number of cells in the x-direction
+#define NX 100000000 // number of cells in the x-direction
 #define L 1.0 // domain length
 #define C 1.0 // c, material conductivity. Uniform assumption.
 #define TEND 1.0 // tEnd, output time

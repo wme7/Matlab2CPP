@@ -4,9 +4,9 @@
 #include <math.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 512 // number of cells in the x-direction
-#define NY 512 // number of cells in the y-direction
-#define NZ 1024 // number of cells in the z-direction
+#define NX 32 // number of cells in the x-direction
+#define NY 32 // number of cells in the y-direction
+#define NZ 64 // number of cells in the z-direction
 #define L 10.0 // domain length
 #define W 10.0 // domain width
 #define H 20.0 // domain width
@@ -30,8 +30,8 @@
 
 // set USE_CPU to 1 to run only on CPU
 // set USE_GPU to 1 to use GPU kernel - without shared mem
-#define USE_CPU 0  // set 1 use only the CPU kernel 
-#define USE_GPU 1  // select the No. of GPU kernel to use
+#define USE_CPU 1  // set 1 use only the CPU kernel 
+#define USE_GPU 0  // select the No. of GPU kernel to use
 
 /* Declare functions */
 void Manage_Memory(int phase, float **h_u, float **h_un, float **d_u, float **d_un);
