@@ -4,8 +4,8 @@
 #include "heat1d.h"
 
 // Our local function declaration
-void Copy_To_Friends(int rank, float **h_a);	// Distribute data to slaves
-void Copy_From_Friends(int rank, float **h_a);	// Collect data from slaves
+void Copy_To_Slaves(int rank, float **h_a);	// Distribute data to slaves
+void Copy_From_Slaves(int rank, float **h_a);	// Collect data from slaves
 void Pass_BC_Right(int rank, float **h_a);	// Pass right-end B/C 
 void Pass_BC_Left(int rank, float **h_a);	// Pass left-end B/C
 
@@ -13,9 +13,11 @@ int main() {
 	
   MPI_Init(NULL, NULL);				// Start MPI ASAP
   int step;
-  float *h_a; 					// Local array holding old temp.
-  float *h_b;					// Local array, new temperature.
-  float *d_a, *d_b;				// Local array for device variables
+  float *h_u; 					// Local array holding old temp.
+  float *h_un; 					// Local array holding new temp.
+  float *d_u;                                   // Local array for device old temp.
+  float *d_un;				        // Local array for device new temp.
+  
   int world_size;				// The total number of processes
   int world_rank;				// Rank of each process (i.e. ID)
   char processor_name[MPI_MAX_PROCESSOR_NAME];	// Name of each processor
@@ -26,74 +28,70 @@ int main() {
   MPI_Get_processor_name(processor_name, &name_len); // Get the name
 
   // Print a message saying hello from each processor and rank:
-  printf("Commence Simulation: processor %s, rank %d out of %d processors\n",
+  printf("Commence Simulation: processor %s, rank %d out of %d processors\n", 
 	 processor_name, world_rank, world_size);
 
   // Allocate memory
-  Allocate_Memory(world_rank, &h_a, &d_a, &d_b);
+  Allocate_Memory(world_rank, &h_u, &d_u, &d_un);
 
   // Rank 0 will initialize proceedings 
-  if (world_rank == 0) Init(h_a);
+  if (world_rank == 0) Init(h_u);
 
   // Barrier here, we want to make sure all is ready
   MPI_Barrier(MPI_COMM_WORLD);
 
-  Copy_To_Friends(world_rank, &h_a);		// Send data to slaves.
+  Copy_To_Slaves(world_rank, &h_u);		// Send data to slaves.
   MPI_Barrier(MPI_COMM_WORLD);			// Make sure we are ready 
 
   // =============== BOUNDARY MANAGEMENT =================
   // Copy end points of regions between slaves. Right First, then left
-  if ((DEBUG) && (world_rank == 0)) printf("==Passing Right==\n"); 
-  Pass_BC_Right(world_rank, &h_a);
+  if ((DEBUG) && (world_rank == 0)) printf("==Passing Right==\n"); Pass_BC_Right(world_rank, &h_u);
   MPI_Barrier(MPI_COMM_WORLD);
-  if ((DEBUG) && (world_rank == 0)) printf("==Passing Left==\n");
-  Pass_BC_Left(world_rank, &h_a);
+  if ((DEBUG) && (world_rank == 0)) printf("==Passing Left==\n"); Pass_BC_Left(world_rank, &h_u);
   // The outer-most ends of our 1D problem have global boundaries.
   // These are controlled by the threads holding these bounds.
-  if (world_rank == 1) h_a[  0 ] = h_a[ 1];  	// Neumann Condition
-  if (world_rank == 4) h_a[NP+1] = h_a[NP];	// Neumann Conditions
+  if (world_rank == 1) h_u[  0 ] = h_u[ 1];  	// Neumann Condition
+  if (world_rank == 4) h_u[NP+1] = h_u[NP];	// Neumann Conditions
   // =============== END BOUNDARY MANAGEMENT =================
   
-  // Copy h_a to the GPU in preperation for computation
-  if (USE_GPU) Copy_All_To_GPU(world_rank, &h_a, &d_a, &d_b);
+  // Copy h_u to the GPU in preperation for computation
+  if (USE_GPU) Copy_All_To_GPU(world_rank, &h_u, &d_u, &d_un);
   
   // Transient time loop
   for (step = 0; step < 150; step++) {
     if (USE_GPU) {
       // Call the wrapping function for our GPU kernel
-      GPU_Compute(world_rank, &d_a, &d_b);  
+      GPU_Compute(world_rank, &d_u, &d_un);  
       MPI_Barrier(MPI_COMM_WORLD);	// Make sure each thread is ready
     } else {
       // Using CPU only
-      CPU_Compute(world_rank, h_a, h_b);
+      CPU_Compute(world_rank, h_u, h_un);
       MPI_Barrier(MPI_COMM_WORLD);	// Make sure each thread is ready
     }
     // =============== BOUNDARY MANAGEMENT =================
-    if (USE_GPU) GPU_Send_Ends(world_rank, &h_a, &d_a);
-    if ((DEBUG) && (world_rank == 0)) printf("==Passing Right==\n"); 
-    Pass_BC_Right(world_rank, &h_a);
+    if (USE_GPU) GPU_Send_Ends(world_rank, &h_u, &d_u);
+    if ((DEBUG) && (world_rank == 0)) printf("==Passing Right==\n"); Pass_BC_Right(world_rank, &h_u);
     MPI_Barrier(MPI_COMM_WORLD);
-    if ((DEBUG) && (world_rank == 0)) printf("==Passing Left==\n");
-    Pass_BC_Left(world_rank, &h_a);
+    if ((DEBUG) && (world_rank == 0)) printf("==Passing Left==\n"); Pass_BC_Left(world_rank, &h_u);
     // Take care of our global boundary conditions (update values)
-    if (world_rank == 1) h_a[0] = h_a[1];  		// Neumann Condition
-    if (world_rank == 4) h_a[NP+1] = h_a[NP];	// Neumann Conditions
-    if (USE_GPU) GPU_Recieve_Ends(world_rank, &h_a, &d_a);
+    if (world_rank == 1) h_u[  0 ] = h_u[ 1];  	// Neumann Condition
+    if (world_rank == 4) h_u[NP+1] = h_u[NP];	// Neumann Conditions
+    if (USE_GPU) GPU_Recieve_Ends(world_rank, &h_u, &d_u);
     // =============== END BOUNDARY MANAGEMENT =================
     MPI_Barrier(MPI_COMM_WORLD); // Make sure we are all ready
   }
   
   // Copy entire data set from GPU to host variables
-  if (USE_GPU) Copy_All_From_GPU(world_rank, &h_a, &d_a, &d_b);  // Copies d_b into h_a on each rank
+  if (USE_GPU) Copy_All_From_GPU(world_rank, &h_u, &d_u, &d_un);  // Copies d_b into h_a on each rank
   
   // Copy data from the slaves to the main thread.
-  Copy_From_Friends(world_rank, &h_a);	// Sends h_a from each rank into the whole h_a on rank 0.
+  Copy_From_Slaves(world_rank, &h_u);	// Sends h_a from each rank into the whole h_a on rank 0.
   
   // Save our results to file
-  if (world_rank == 0) Save_Result(h_a);
+  if (world_rank == 0) Save_Result(h_u);
   
   // Free the memory
-  Free_Memory(world_rank, &h_a, &d_a, &d_b);
+  Free_Memory(world_rank, &h_u, &d_u, &d_un);s
   
   // We must conclude our parallel work before continuing.
   MPI_Finalize();
@@ -102,17 +100,13 @@ int main() {
 }
 
 
-void Copy_To_Friends(int rank, float **h_a) {
+void Copy_To_Slaves(int rank, float **h_u) {
   // Distribute information from the main thread to the slaves
   if (rank == 0) {
-    // Send the first NP = (N/4) elements from h_a  (elements 0,1,2..24)
-    MPI_Send(*h_a, NP, MPI_FLOAT, 1, 0, MPI_COMM_WORLD);
-    // Send the next NP elements from h_a (elements 25,26...49) 
-    MPI_Send(*h_a+NP, NP, MPI_FLOAT, 2, 0, MPI_COMM_WORLD);
-    // Send the next NP elements from h_a (elements 50, 51, ...74) 
-    MPI_Send(*h_a+2*NP, NP, MPI_FLOAT, 3, 0, MPI_COMM_WORLD);
-    // Send the next NP elements from h_a (elements 75, 76, ...99) 
-    MPI_Send(*h_a+3*NP, NP, MPI_FLOAT, 4, 0, MPI_COMM_WORLD);
+    MPI_Send(*h_u+0*NP, NP, MPI_FLOAT, 1, 0, MPI_COMM_WORLD); // Send elements  0,  1, ...24 from h_u
+    MPI_Send(*h_u+1*NP, NP, MPI_FLOAT, 2, 0, MPI_COMM_WORLD); // Send elements 25, 26, ...49 from h_u 
+    MPI_Send(*h_u+2*NP, NP, MPI_FLOAT, 3, 0, MPI_COMM_WORLD); // Send elements 50, 51, ...74 from h_u
+    MPI_Send(*h_u+3*NP, NP, MPI_FLOAT, 4, 0, MPI_COMM_WORLD); // Send elements 75, 76, ...99 from h_u
   } else {
     // This is a slave thread - prepare to recieve data.
     // This data starts in the 2nd element (element 1) since 0 contains BC data.
@@ -120,7 +114,7 @@ void Copy_To_Friends(int rank, float **h_a) {
   }
 }
 
-void Copy_From_Friends(int rank, float **h_a) {
+void Copy_From_Slaves(int rank, float **h_a) {
   // Collect data from slaves if rank = 0. Otherwise, send it.
   // Let's go - Rank 1 --> Main Thread (0) First
   if (rank == 1) {
