@@ -1,0 +1,8 @@
+#!/bin/sh
+
+#PBS -q checkpt 
+#PBS -l nodes=1:ppn=30
+#PBS -l walltime=12:00:00
+
+cd /panasas/home/estrabd/2dheat/scripts
+sh ./bench.sh ${PBS_NODEFILE} 2>&1 | tee santaka.out 

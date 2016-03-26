@@ -1,3 +1,3 @@
 make clean
 make
-mpirun -np 3 heat1d.run
+mpirun -np 6 heat1d.run

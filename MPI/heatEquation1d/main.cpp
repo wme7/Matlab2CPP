@@ -40,15 +40,15 @@ int main ( int argc, char *argv[] ) {
   if (rank==0) wtime=MPI_Wtime();
 
   // Solver
-  for (step = 0; step < NO_STEPS; step+=2) {
-    if (step%1000==0 && rank==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
+  //for (step = 0; step < NO_STEPS; step+=2) {
+  //  if (step%1000==0 && rank==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
        
     // Compute stencil
     // Call_Laplace(&h_u,&h_un); // 1st iter
     // Call_Laplace(&h_un,&h_u); // 2nd iter
-  }
+  //}
 
-  // Free Memory
+  // Collect solutions into process 0
   Manage_Memory(2,rank,size,nx,&h_u,&h_un); MPI_Barrier(MPI_COMM_WORLD);
 
   // Record the final time.
@@ -56,14 +56,15 @@ int main ( int argc, char *argv[] ) {
     wtime = MPI_Wtime()-wtime;
     printf ("\n Wall clock elapsed seconds = %f\n\n", wtime );      
   }
-  // Terminate MPI.
-  MPI_Finalize();
-
+  
   // Write Solution
   if (rank==0) Save_Results(h_u);
 
   // Free Memory
   Manage_Memory(3,rank,size,nx,&h_u,&h_un); MPI_Barrier(MPI_COMM_WORLD);
+
+  // Terminate MPI.
+  MPI_Finalize();
 
   // Terminate.
   if (rank==0) {

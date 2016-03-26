@@ -6,8 +6,8 @@ int Manage_Domain(int phase, int rank, int size){
   
   // Define the size for each slave
   if      (rank==    0  ) nx = NX;
-  else if (rank < size-1) nx = ceil((float)NX/(size-1)) +2;
-  else if (rank== size-1) nx = ceil((float)NX/(size-1)) - (NX%(size-1)) +2; 
+  else if (rank < size-1) nx = ceil((float)NX/(size-1));
+  else if (rank== size-1) nx = ceil((float)NX/(size-1)) - (NX%(size-1)); 
 
   // Have process 0 print out some information.
   if (rank==0) {
@@ -25,45 +25,39 @@ int Manage_Domain(int phase, int rank, int size){
 }
 
 void Manage_Memory(int phase, int rank, int size, int nx, double **h_u, double **h_un){
-  size_t global= NX*sizeof(double);
-  size_t  local= nx*sizeof(double);
+  int LX; if (size>1) LX = NX/(size-1); else LX = NX;
   if (phase==0) {
     // Allocate domain on host
     if (rank==0) {
-      *h_u = (double*)malloc(global);
-      *h_un= (double*)malloc(global);
+      *h_u = (double*)malloc(NX*sizeof(double));
+      *h_un= (double*)malloc(NX*sizeof(double));
     } else {
-      *h_u = (double*)malloc( local);
-      *h_un= (double*)malloc( local);
+      *h_u = (double*)malloc((nx+2)*sizeof(double));
+      *h_un= (double*)malloc((nx+2)*sizeof(double));
     }
   }
   if (phase==1) {
      // Distribute information from the main thread to the slaves
     if (rank==0) {
-      MPI_Send(*h_u+0*NX/2, NX/2, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);  
-      MPI_Send(*h_u+1*NX/2, NX/2, MPI_DOUBLE, 2, 0, MPI_COMM_WORLD);  
+      MPI_Send(*h_u+0*LX,LX,MPI_DOUBLE,1,0,MPI_COMM_WORLD);  
+      MPI_Send(*h_u+1*LX,LX,MPI_DOUBLE,2,0,MPI_COMM_WORLD); 
+      MPI_Send(*h_u+2*LX,LX,MPI_DOUBLE,3,0,MPI_COMM_WORLD);
+      MPI_Send(*h_u+3*LX,LX,MPI_DOUBLE,4,0,MPI_COMM_WORLD);
+      MPI_Send(*h_u+4*LX,LX,MPI_DOUBLE,5,0,MPI_COMM_WORLD);
     } else {
       // This is a slave thread - prepare to recieve data.
-      MPI_Recv(*h_u+1, nx, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(*h_u + 1 ,nx,MPI_DOUBLE,0,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
     } 
   }
   if (phase==2) {
-    // Collect data from slaves if rank=0. Otherwise, send it.
-    // 1 --> 0 First
-    if (rank == 1) {
-      MPI_Send(*h_u+1, nx, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-    } else if (rank == 0) {
-      MPI_Recv(*h_u+0*NX/2, NX/2, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-    // Once rank 0 is ready, we will continue.
+    // Collect data from slaves to rank=0. 
+    // 1 -> 0 
+    if (rank == 1) MPI_Send(*h_u + 1 ,nx,MPI_DOUBLE,0,0,MPI_COMM_WORLD);
+    if (rank == 0) MPI_Recv(*h_u+0*LX,LX,MPI_DOUBLE,1,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
     MPI_Barrier(MPI_COMM_WORLD);
-    // 2 --> 0 Now
-    if (rank == 2) {
-      MPI_Send(*h_u+1, nx, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-    } else if (rank == 0) {
-      MPI_Recv(*h_u+1*NX/2, NX/2, MPI_DOUBLE, 2, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-    // Add one final barrier for good measure.
+    // 2 -> 0
+    if (rank == 2) MPI_Send(*h_u + 1 ,nx,MPI_DOUBLE,0,0,MPI_COMM_WORLD);
+    if (rank == 0) MPI_Recv(*h_u+1*LX,LX,MPI_DOUBLE,2,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
     MPI_Barrier(MPI_COMM_WORLD);
   }
   if (phase==3) {
@@ -110,34 +104,19 @@ void Save_Results(double *u){
   }
 }
 
-void Manage_Comms(int phase, int rank, int size, int nx, double **h_u) {
-  if (phase==1) {
-    // Each rank (except rank 0) passes the right end of its data (element NP) to the 1st element
-    // of its right hand side neighbour region
-    // |   1 -----> 2   |
-    // |	|	|
-  if (rank == 1) {
-    // This rank is sending one value
-    MPI_Send(*h_a+NP, 1, MPI_FLOAT, rank+1, 0, MPI_COMM_WORLD);
-  } else  if (rank == 2) {
-    // This rank is recieving one value
-    MPI_Recv(*h_a, 1, MPI_FLOAT, rank-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+void Manage_Comms(int phase, int rank, int p, int n, double **u) {
+  // communicate boundaries except with rank 0
+  if (phase==1 && rank!=0) {    
+    if (rank> 1 ) MPI_Send(*u + 1,1,MPI_DOUBLE,rank-1,1,MPI_COMM_WORLD);                  // send u[ 1 ] to   rank-1
+    if (rank<p-1) MPI_Recv(*u+n+1,1,MPI_DOUBLE,rank+1,1,MPI_COMM_WORLD,MPI_STATUS_IGNORE); // recv u[n+1] from rank+1
+    if (rank<p-1) MPI_Send(*u+n  ,1,MPI_DOUBLE,rank+1,2,MPI_COMM_WORLD);                  // send u[ n ] to   rank+1
+    if (rank> 1 ) MPI_Recv(*u    ,1,MPI_DOUBLE,rank-1,2,MPI_COMM_WORLD,MPI_STATUS_IGNORE); // recv u[ 0 ] from rank-1
   }
-  MPI_Barrier(MPI_COMM_WORLD); // Make sure we are all ready.
-  
-  }
-  if (phase==2) {
-    // Each rank (except rank 0) passes the left end of its data 
-    // to the LAST element of its left hand side neighbour region
-    // |   1 <----- 2   |
-    // |	|	|
-    if (rank == 2) {
-      // These ranks are passing 1 value
-      MPI_Send(*h_a+1, 1, MPI_FLOAT, rank-1, 0, MPI_COMM_WORLD);
-    } else if (rank == 1) {
-      // These ranks are recieving
-      MPI_Recv(*h_a+NP+1, 1, MPI_FLOAT, rank+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
+  if (phase==2 && rank!=0) {
+    if (rank> 1 ) MPI_Send(*u + 1,1,MPI_DOUBLE,rank-1,1,MPI_COMM_WORLD);                  // send u[ 1 ] to   rank-1
+    if (rank<p-1) MPI_Recv(*u+n+1,1,MPI_DOUBLE,rank+1,1,MPI_COMM_WORLD,MPI_STATUS_IGNORE); // recv u[n+1] from rank+1
+    if (rank<p-1) MPI_Send(*u+n  ,1,MPI_DOUBLE,rank+1,2,MPI_COMM_WORLD);                  // send u[ n ] to   rank+1
+    if (rank> 1 ) MPI_Recv(*u    ,1,MPI_DOUBLE,rank-1,2,MPI_COMM_WORLD,MPI_STATUS_IGNORE); // recv u[ 0 ] from rank-1
   }
 }
 
@@ -168,3 +147,5 @@ void Call_Laplace(int rank, double **u, double **un){
   }
 }
 */
+
+

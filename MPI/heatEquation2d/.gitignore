@@ -1,0 +1,9 @@
+*
+
+!.gitignore
+!makefile
+!jacobi.c
+!jacobi-opti.c
+!gauss-seidel.c
+!helpers.h
+!helpers.c
