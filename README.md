@@ -2,7 +2,8 @@
 Some example files I've been developing to become more familiar in programming multiple GPUs. 
 Happy GPU programming! ;D
 
-Update 02/22/05:
+Update 03.28.2005:
 Added tutorial files from: 
-[1] Sanders, Jason, and Edward Kandrot. CUDA by Example: An Introduction to General-Purpose GPU Programming, Portable Documents. Addison-Wesley Professional, 2010.
-[2] M.R. Smith. High Speed Heterogenous Computing Laboratory (HSHCL)'s tutorials. Accessible from http://hshclncku.com/tutorials.html
+1. Sanders, Jason, and Edward Kandrot. CUDA by Example: An Introduction to General-Purpose GPU Programming, Portable Documents. Addison-Wesley Professional, 2010.
+2. Wesley Kenday, et al. MPI tutorial. Accessible from [here](https://github.com/wesleykendall/mpitutorial)
+3. M.R. Smith. High Speed Heterogenous Computing Laboratory (HSHCL)'s tutorials. Accessible from [here](http://hshclncku.com/tutorials.html)
