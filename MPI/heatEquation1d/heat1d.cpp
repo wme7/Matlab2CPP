@@ -39,11 +39,12 @@ void Manage_Memory(int phase, int rank, int size, int nx, double **h_u, double *
   if (phase==1) {
      // Distribute information from the main thread to the slaves
     if (rank==0) {
-      MPI_Send(*h_u+0*LX,LX,MPI_DOUBLE,1,0,MPI_COMM_WORLD);  
-      MPI_Send(*h_u+1*LX,LX,MPI_DOUBLE,2,0,MPI_COMM_WORLD); 
-      MPI_Send(*h_u+2*LX,LX,MPI_DOUBLE,3,0,MPI_COMM_WORLD);
-      MPI_Send(*h_u+3*LX,LX,MPI_DOUBLE,4,0,MPI_COMM_WORLD);
-      MPI_Send(*h_u+4*LX,LX,MPI_DOUBLE,5,0,MPI_COMM_WORLD);
+      MPI_Scatter(*h_u,)
+      //MPI_Send(*h_u+0*LX,LX,MPI_DOUBLE,1,0,MPI_COMM_WORLD);  
+      //MPI_Send(*h_u+1*LX,LX,MPI_DOUBLE,2,0,MPI_COMM_WORLD); 
+      //MPI_Send(*h_u+2*LX,LX,MPI_DOUBLE,3,0,MPI_COMM_WORLD);
+      //MPI_Send(*h_u+3*LX,LX,MPI_DOUBLE,4,0,MPI_COMM_WORLD);
+      //MPI_Send(*h_u+4*LX,LX,MPI_DOUBLE,5,0,MPI_COMM_WORLD);
     } else {
       // This is a slave thread - prepare to recieve data.
       MPI_Recv(*h_u + 1 ,nx,MPI_DOUBLE,0,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);

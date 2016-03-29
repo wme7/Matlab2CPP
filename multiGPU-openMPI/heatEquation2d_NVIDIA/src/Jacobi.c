@@ -29,7 +29,7 @@ int main(int argc, char ** argv)
 	real * devHaloLines[2] 	= {NULL, NULL};
 	real * hostSendLines[2] = {NULL, NULL};
 	real * hostRecvLines[2] = {NULL, NULL};
-	real * devResidue 		= NULL;
+	real * devResidue 	= NULL;
 
 	cudaStream_t copyStream = NULL;
 	
