@@ -16,8 +16,9 @@ int main ( int argc, char *argv[] ) {
   double wtime;
 
   // Solution arrays
-  double *h_u;
-  double *h_un;
+  double *g_u; /* will be allocated in ROOT only */ 
+  double *t_u;
+  double *t_un;
 
   // Initialize MPI
   MPI_Init(&argc, &argv);
@@ -25,49 +26,47 @@ int main ( int argc, char *argv[] ) {
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
   // Manage Domain sizes
-  nx = Manage_Domain(0,rank,size); MPI_Barrier(MPI_COMM_WORLD);
+  nx = Manage_Domain(0,rank,size); 
 
   // Allocate Memory
-  Manage_Memory(0,rank,size,nx,&h_u,&h_un);
+  Manage_Memory(0,rank,size,nx,&g_u,&t_u,&t_un);
 
-  // Build Initial Condition
-  if (rank==0) Set_IC(h_u); MPI_Barrier(MPI_COMM_WORLD);
+  // Build Initial Condition and manage Internal Boundaries (halo regions)
+  Call_IC(2,rank,size,nx,t_u); Manage_Comms(rank,size,nx,&t_u); 
+  MPI_Barrier(MPI_COMM_WORLD);
 
-  // Copy to slave processors
-  Manage_Memory(1,rank,size,nx,&h_u,&h_un); MPI_Barrier(MPI_COMM_WORLD);
+  // ROOT mode: Record the starting time.
+  if (rank==ROOT) wtime=MPI_Wtime();
 
-  // Record the starting time.
-  if (rank==0) wtime=MPI_Wtime();
+  // Asynchronowus MPI Solver
+  for (step = 0; step < NO_STEPS; step+=2) {
+    // print iteration in ROOT mode
+    if (rank==ROOT && step%10000==0) printf("  Step %d of %d\n",step,(int)NO_STEPS);
+    
+    // Exchange Boundaries and compute stencil
+    Call_Laplace(nx,&t_u,&t_un); Manage_Comms(rank,size,nx,&t_un); // 1st iter
+    Call_Laplace(nx,&t_un,&t_u); Manage_Comms(rank,size,nx,&t_u ); // 2nd iter
+  }
+  MPI_Barrier(MPI_COMM_WORLD);
 
-  // Solver
-  //for (step = 0; step < NO_STEPS; step+=2) {
-  //  if (step%1000==0 && rank==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
-       
-    // Compute stencil
-    // Call_Laplace(&h_u,&h_un); // 1st iter
-    // Call_Laplace(&h_un,&h_u); // 2nd iter
-  //}
-
-  // Collect solutions into process 0
-  Manage_Memory(2,rank,size,nx,&h_u,&h_un); MPI_Barrier(MPI_COMM_WORLD);
-
-  // Record the final time.
-  if (rank==0) {
+  // ROOT mode: Record the final time.
+  if (rank==ROOT) {
     wtime = MPI_Wtime()-wtime;
-    printf ("\n Wall clock elapsed seconds = %f\n\n", wtime );      
+    printf ("\n Wall clock elapsed seconds = %f\n\n", wtime );
   }
   
-  // Write Solution
-  if (rank==0) Save_Results(h_u);
+  // Gather solutions to ROOT and write solution in ROOT mode
+  MPI_Gather(t_u+1, nx, MPI_DOUBLE, g_u, nx, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
+  if (rank==ROOT) Save_Results(g_u);
 
   // Free Memory
-  Manage_Memory(3,rank,size,nx,&h_u,&h_un); MPI_Barrier(MPI_COMM_WORLD);
+  Manage_Memory(1,rank,size,nx,&g_u,&t_u,&t_un); MPI_Barrier(MPI_COMM_WORLD);
 
   // Terminate MPI.
   MPI_Finalize();
 
-  // Terminate.
-  if (rank==0) {
+  // ROOT mode: Terminate.
+  if (rank==ROOT) {
     printf ("HEAT_MPI:\n" );
     printf ("  Normal end of execution.\n\n" );
   }

@@ -2,15 +2,16 @@
 #include "heat1d.h"
 
 int Manage_Domain(int phase, int rank, int size){
-  int nx;
   
-  // Define the size for each slave
-  if      (rank==    0  ) nx = NX;
-  else if (rank < size-1) nx = ceil((float)NX/(size-1));
-  else if (rank== size-1) nx = ceil((float)NX/(size-1)) - (NX%(size-1)); 
+  // All process have by definition the same domain size
+  int nx = (float)NX/size;
+  if (NX%size != 0) {
+    printf("Sorry, the domain size is should be %d*np = NX.\n",nx);
+    MPI_Abort(MPI_COMM_WORLD,1);
+  }
 
   // Have process 0 print out some information.
-  if (rank==0) {
+  if (rank==ROOT) {
     printf ("HEAT_MPI:\n\n" );
     printf ("  C++/MPI version\n" );
     printf ("  Solve the 1D time-dependent heat equation.\n\n" );
@@ -18,78 +19,57 @@ int Manage_Domain(int phase, int rank, int size){
 
   // Print welcome message
   printf ("  Commence Simulation: processor rank %d out of %d processors"
-	  " working with %d cells\n",rank,size,nx);
+	  " working with %d +2 cells\n",rank,size,nx);
 
   // return the nx value
   return nx;
 }
 
-void Manage_Memory(int phase, int rank, int size, int nx, double **h_u, double **h_un){
-  int LX; if (size>1) LX = NX/(size-1); else LX = NX;
+void Manage_Memory(int phase, int rank, int size, int nx, double **g_u, double **h_u, double **h_un){
   if (phase==0) {
-    // Allocate domain on host
-    if (rank==0) {
-      *h_u = (double*)malloc(NX*sizeof(double));
-      *h_un= (double*)malloc(NX*sizeof(double));
-    } else {
-      *h_u = (double*)malloc((nx+2)*sizeof(double));
-      *h_un= (double*)malloc((nx+2)*sizeof(double));
-    }
+    // Allocate global domain on ROOT
+    if (rank==ROOT) *g_u=(double*)malloc(NX*sizeof(double)); // only exist in ROOT!
+    // Allocate local domains on MPI threats with 2 extra slots for halo regions
+    *h_u =(double*)malloc((nx+2)*sizeof(double));
+    *h_un=(double*)malloc((nx+2)*sizeof(double));
   }
   if (phase==1) {
-     // Distribute information from the main thread to the slaves
-    if (rank==0) {
-      MPI_Scatter(*h_u,)
-      //MPI_Send(*h_u+0*LX,LX,MPI_DOUBLE,1,0,MPI_COMM_WORLD);  
-      //MPI_Send(*h_u+1*LX,LX,MPI_DOUBLE,2,0,MPI_COMM_WORLD); 
-      //MPI_Send(*h_u+2*LX,LX,MPI_DOUBLE,3,0,MPI_COMM_WORLD);
-      //MPI_Send(*h_u+3*LX,LX,MPI_DOUBLE,4,0,MPI_COMM_WORLD);
-      //MPI_Send(*h_u+4*LX,LX,MPI_DOUBLE,5,0,MPI_COMM_WORLD);
-    } else {
-      // This is a slave thread - prepare to recieve data.
-      MPI_Recv(*h_u + 1 ,nx,MPI_DOUBLE,0,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-    } 
-  }
-  if (phase==2) {
-    // Collect data from slaves to rank=0. 
-    // 1 -> 0 
-    if (rank == 1) MPI_Send(*h_u + 1 ,nx,MPI_DOUBLE,0,0,MPI_COMM_WORLD);
-    if (rank == 0) MPI_Recv(*h_u+0*LX,LX,MPI_DOUBLE,1,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-    MPI_Barrier(MPI_COMM_WORLD);
-    // 2 -> 0
-    if (rank == 2) MPI_Send(*h_u + 1 ,nx,MPI_DOUBLE,0,0,MPI_COMM_WORLD);
-    if (rank == 0) MPI_Recv(*h_u+1*LX,LX,MPI_DOUBLE,2,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-  if (phase==3) {
     // Free the domain on host
     free(*h_u);
     free(*h_un);
   }
 }
 
-void Set_IC(double *u0){
+void Call_IC(const int IC, int rank, int size, int nx, double *u0){
   // Set initial condition in global domain
-
-  const int IC=2;
-
   switch (IC) {
+    case 0: {
+      // For testing the communications
+      if (rank<size) {
+	for (int i = 0; i < nx; i++) u0[i+1]=0.2 + 0.2*rank;
+      }
+      break;
+    }
     case 1: {
-      // Temperature at boundary 
-      for (int i = 0; i < NX; i++) u0[i]=0.0;
-      // Set Dirichlet boundary conditions in global domain
-      u0[0]=0.0;  u0[NX-1]=1.0;
+      // Uniform Temperature in the domain, temperature will be imposed at boundaries
+      for (int i = 0; i < nx; i++) {u0[i+1]=0.0;}
+      // Set Dirichlet boundary conditions in global domain as u0[0]=0.0;  u0[NX]=1.0; namely
+      if (rank==0)      u0[ 0+1]=0.0;
+      if (rank==size-1) u0[nx+1]=1.0;
       break;
     }
     case 2: {
       // A square jump problem
-      for (int i = 0; i < NX; i++) {if (i>0.3*NX && i<0.7*NX) u0[i]=1.0; else u0[i]=0.0;}
-      // Set Dirichlet boundary conditions in global domain
-      u0[0]=0.0;  u0[NX-1]=0.0;
+      int idx; // global index
+      int i;   // local index
+      for (i= 0; i < nx; i++) { idx = rank*nx+i; 
+	if (idx>0.3*NX && idx<0.7*NX) u0[i+1]=1.0; else u0[i+1]=0.0;
+      } // +1: cell biased becuase of the hallo radius
+      // Set Neumann boundary conditions in global domain u0'[0]=0.0;  u0'[NX]=0.0;
       break;
     }
       // add another IC
-    }
+  }
 }
 
 void Save_Results(double *u){
@@ -105,24 +85,34 @@ void Save_Results(double *u){
   }
 }
 
-void Manage_Comms(int phase, int rank, int p, int n, double **u) {
-  // communicate boundaries except with rank 0
-  if (phase==1 && rank!=0) {    
-    if (rank> 1 ) MPI_Send(*u + 1,1,MPI_DOUBLE,rank-1,1,MPI_COMM_WORLD);                  // send u[ 1 ] to   rank-1
-    if (rank<p-1) MPI_Recv(*u+n+1,1,MPI_DOUBLE,rank+1,1,MPI_COMM_WORLD,MPI_STATUS_IGNORE); // recv u[n+1] from rank+1
-    if (rank<p-1) MPI_Send(*u+n  ,1,MPI_DOUBLE,rank+1,2,MPI_COMM_WORLD);                  // send u[ n ] to   rank+1
-    if (rank> 1 ) MPI_Recv(*u    ,1,MPI_DOUBLE,rank-1,2,MPI_COMM_WORLD,MPI_STATUS_IGNORE); // recv u[ 0 ] from rank-1
-  }
-  if (phase==2 && rank!=0) {
-    if (rank> 1 ) MPI_Send(*u + 1,1,MPI_DOUBLE,rank-1,1,MPI_COMM_WORLD);                  // send u[ 1 ] to   rank-1
-    if (rank<p-1) MPI_Recv(*u+n+1,1,MPI_DOUBLE,rank+1,1,MPI_COMM_WORLD,MPI_STATUS_IGNORE); // recv u[n+1] from rank+1
-    if (rank<p-1) MPI_Send(*u+n  ,1,MPI_DOUBLE,rank+1,2,MPI_COMM_WORLD);                  // send u[ n ] to   rank+1
-    if (rank> 1 ) MPI_Recv(*u    ,1,MPI_DOUBLE,rank-1,2,MPI_COMM_WORLD,MPI_STATUS_IGNORE); // recv u[ 0 ] from rank-1
+void Set_DirichletBC(double *u, const int n, const char letter, const double value){
+  switch (letter) {
+  case 'L': { u[ 1 ]=value; break;}
+  case 'R': { u[ n ]=value; break;}
   }
 }
 
-/*
-void Laplace1d(const double * __restrict__ u, double * __restrict__ un){
+void Set_NeumannBC(double *u, const int n, const char letter){
+  switch (letter) {
+  case 'L': { u[ 1 ]=u[ 2 ]; break;}
+  case 'R': { u[ n ]=u[n-1]; break;}
+  }
+}
+
+void Manage_Comms(int r, int p, int n, double **u) {
+  MPI_Status status;
+  // Communicate halo regions and impose BCs!
+  //if (r== 0 ) Set_DirichletBC(*u,n,'L',0.0); // impose Dirichlet BC u[ 0 ] = 1.0
+  if (r== 0 ) Set_NeumannBC(*u,n,'L'); // impose Neumann BC : adiabatic condition 
+  if (r > 0 ) MPI_Send(*u + 1,1,MPI_DOUBLE,r-1,1,MPI_COMM_WORLD);         // send u[ 1 ] to   rank-1
+  if (r <p-1) MPI_Recv(*u+n+1,1,MPI_DOUBLE,r+1,1,MPI_COMM_WORLD,&status); // recv u[n+1] from rank+1
+  if (r <p-1) MPI_Send(*u+n  ,1,MPI_DOUBLE,r+1,2,MPI_COMM_WORLD);         // send u[ n ] to   rank+1
+  if (r > 0 ) MPI_Recv(*u    ,1,MPI_DOUBLE,r-1,2,MPI_COMM_WORLD,&status); // recv u[ 0 ] from rank-1
+  if (r==p-1) Set_NeumannBC(*u,n,'R'); // impose Neumann BC : adiabatic condition
+  //if (r==p-1) Set_DirichletBC(*u,n,'R',1.0); // impose Dirichlet BC u[n+1] = 0.0
+}
+
+void Laplace1d(const int n, const double * __restrict__ u, double * __restrict__ un){
   int i, o, r, l;
   // perform laplace operator
   for (i = 0; i < n; i++) {
@@ -140,13 +130,7 @@ void Laplace1d(const double * __restrict__ u, double * __restrict__ un){
   } 
 }
 
-void Call_Laplace(int rank, double **u, double **un){
+void Call_Laplace(int n, double **u, double **un){
   // Produce one iteration of the laplace operator
-  switch (rank) {
-  case 0: {do nothing break;}
-  default: {Laplace1d(*u,*un); break;}
-  }
+  Laplace1d(n+2,*u,*un); // +2 halo cells
 }
-*/
-
-
