@@ -38,7 +38,7 @@ int main ( int argc, char *argv[] ) {
   // ROOT mode: Record the starting time.
   if (rank==ROOT) wtime=MPI_Wtime();
 
-  // Asynchronowus MPI Solver
+  // Asynchronous MPI Solver
   for (step = 0; step < NO_STEPS; step+=2) {
     // print iteration in ROOT mode
     if (rank==ROOT && step%10000==0) printf("  Step %d of %d\n",step,(int)NO_STEPS);
@@ -60,7 +60,8 @@ int main ( int argc, char *argv[] ) {
   if (rank==ROOT) Save_Results(g_u);
 
   // Free Memory
-  Manage_Memory(1,rank,size,nx,&g_u,&t_u,&t_un); MPI_Barrier(MPI_COMM_WORLD);
+  Manage_Memory(1,rank,size,nx,&g_u,&t_u,&t_un); 
+  MPI_Barrier(MPI_COMM_WORLD);
 
   // Terminate MPI.
   MPI_Finalize();
