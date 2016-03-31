@@ -27,7 +27,7 @@ RM = rm -f
 CC = $(MPICH)/mpicc
 RUN = $(MPICH)/mpirun
 EXIT = $(MPICH)/mpdallexit
-CFLAGS = -std=c99
+CFLAGS = -Wall -std=c99
 
 compile-jacobi: jacobi
 

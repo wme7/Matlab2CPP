@@ -11,7 +11,7 @@
 #define TAG_DIFF 2
  
 result jacobi(int n, int maxIter, int myID, int numProcs) {
-
+	printf("something\n");
     result myResult;
 
     int height;
@@ -134,11 +134,13 @@ result jacobi(int n, int maxIter, int myID, int numProcs) {
 }
 
 int main(int argc, char *argv[]) {
-
+printf("my current ID is:"); 
     int myID, numProcs;
     int n = atoi(argv[1]);
     int maxIter = atoi(argv[2]);
     result myResult;
+
+	
 
     /* Initialisation de MPI */
     MPI_Init( &argc, &argv );
@@ -160,7 +162,7 @@ int main(int argc, char *argv[]) {
     }
     
     myResult = jacobi(n, maxIter, myID, numProcs);
-    
+
     if(myID == 0) {
         printf("Grid :\n");
         print_buffer(myResult.grid, (n + 2) * n, n + 2);

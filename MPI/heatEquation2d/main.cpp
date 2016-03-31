@@ -33,11 +33,11 @@ int main ( int argc, char *argv[] ) {
 
   // Root mode: Build Initial Condition and scatter it to the rest of processors
   if (domain.rank==ROOT) Call_IC(2,g_u);
-  MPI_Scatter(g_u, domain.size, MPI_DOUBLE, t_u, domain.size, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
+  MPI_Scatter(g_u, domain.size, MPI_DOUBLE, t_u+NX, domain.size, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
 
   // Exchage Halo regions
-  //Manage_Comms(rank,size,nx,&t_u); 
-
+  Manage_Comms(domain,&t_u,&t_u); MPI_Barrier(MPI_COMM_WORLD); 
+  
   // ROOT mode: Record the starting time.
   if (rank==ROOT) wtime=MPI_Wtime();
 
@@ -47,10 +47,10 @@ int main ( int argc, char *argv[] ) {
     if (rank==ROOT && step%10000==0) printf("  Step %d of %d\n",step,(int)NO_STEPS);
     
     // Exchange Boundaries and compute stencil
-    //Call_Laplace(domain,&t_u,&t_un); Manage_Comms(rank,size,nx,&t_un); // 1st iter
-    //Call_Laplace(domain,&t_un,&t_u); Manage_Comms(rank,size,nx,&t_u ); // 2nd iter
+    Call_Laplace(domain,&t_u,&t_un); Manage_Comms(domain,&t_un,&t_u); // 1st iter
+    Call_Laplace(domain,&t_un,&t_u); Manage_Comms(domain,&t_u,&t_un); // 2nd iter
   }
-  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Barrier(MPI_COMM_WORLD); if (rank==0) Print_SubDomain(domain,t_u);
 
   // ROOT mode: Record the final time.
   if (rank==ROOT) {
@@ -59,7 +59,7 @@ int main ( int argc, char *argv[] ) {
   }
   
   // Gather solutions to ROOT and write solution in ROOT mode
-  MPI_Gather(t_u, domain.size, MPI_DOUBLE, g_u, domain.size, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
+  MPI_Gather(t_u+NX, domain.size, MPI_DOUBLE, g_u, domain.size, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
   if (rank==ROOT) Save_Results(g_u);
 
   // Free Memory

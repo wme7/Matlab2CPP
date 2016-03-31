@@ -1,8 +1,0 @@
-TODO:
-- implement hybrid version (starting with MPI version)
-- create Makefiles and unify benchmarking scripts
-- investigate optimal versions of pure OpenMP version
-
-DONE:
-- implement serial version
-- implement OpenMP version (complete with timing)
