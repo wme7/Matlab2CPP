@@ -22,7 +22,8 @@
 #define KZ (C*DT/(DZ*DZ)) // numerical conductivity
 #define NO_STEPS (TEND/DT) // No. of time steps
 #define NO_STEPS (TEND/DT) // No. of time steps
-#define ROOT 0 // define root procs 
+#define R 1 // radius or width of the hallo region
+#define ROOT 0 // define root process
 #define SX 1 // sub-grids in the x-direction
 #define SY 1 // sub-grids in the y-direction
 #define SZ 4 // sub-grids in the z-direction
