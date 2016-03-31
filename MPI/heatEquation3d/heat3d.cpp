@@ -1,20 +1,20 @@
 
-#include "heat2d.h"
+#include "heat3d.h"
 
 dmn Manage_Domain(int rank, int npcs){
   // allocate domain and its data
   dmn domain;
   domain.rank = rank;
   domain.npcs = npcs;
-  domain.rx = rank%SX;
-  domain.ry = rank/SY;
   domain.nx = NX/SX;
   domain.ny = NY/SY;
-  domain.size = domain.nx*domain.ny;
+  domain.nz = NZ/SZ;
+  domain.size = domain.nx*domain.ny*domain.nz;
   
   // All process have by definition the same domain dimensions
-  if ((NX*NY)%npcs != 0) {
-    printf("Sorry, the domain size should be (%d*np)*(%d*1) = NX*NY.\n",domain.nx,domain.ny);
+  if ((NX*NY*NZ)%npcs != 0) {
+    printf("Sorry, the domain size should be (%d*np) x (%d*1) x (%d*1) = NX*NY.\n",
+	   domain.nx,domain.ny,domain.nz);
     MPI_Abort(MPI_COMM_WORLD,1);
   }
 
@@ -22,12 +22,13 @@ dmn Manage_Domain(int rank, int npcs){
   if (rank==ROOT) {
     printf ("HEAT_MPI:\n\n" );
     printf ("  C++/MPI version\n" );
-    printf ("  Solve the 2D time-dependent heat equation.\n\n" );
+    printf ("  Solve the 3D time-dependent heat equation.\n\n" );
   } 
 
   // Print welcome message
   printf ("  Commence Simulation: procs rank %d out of %d cores"
-	  " working with nx=(%d +2) by ny=(%d +2) cells\n",rank,npcs,domain.nx,domain.ny);
+	  " working with (%d +2) x (%d +2) x (%d +2) cells\n",
+	  rank,npcs,domain.nx,domain.ny,domain.nz);
 
   return domain;
 }
@@ -35,10 +36,10 @@ dmn Manage_Domain(int rank, int npcs){
 void Manage_Memory(int phase, dmn domain, double **g_u, double **h_u, double **h_un){
   if (phase==0) {
     // Allocate global domain on ROOT
-    if (domain.rank==ROOT) *g_u=(double*)malloc(NX*NY*sizeof(double)); // only exist in ROOT!
+    if (domain.rank==ROOT) *g_u=(double*)malloc(NX*NY*NZ*sizeof(double)); // only exist in ROOT!
     // Allocate local domains on MPI threats with 2 extra slots for halo regions
-    *h_u =(double*)malloc((domain.nx+2)*(domain.ny+2)*sizeof(double));
-    *h_un=(double*)malloc((domain.nx+2)*(domain.ny+2)*sizeof(double));
+    *h_u =(double*)malloc((domain.nx+2)*(domain.ny+2)*(domain.nz+2)*sizeof(double));
+    *h_un=(double*)malloc((domain.nx+2)*(domain.ny+2)*(domain.nz+2)*sizeof(double));
   }
   if (phase==1) {
     // Free the domain on host
@@ -52,48 +53,33 @@ void Manage_Memory(int phase, dmn domain, double **g_u, double **h_u, double **h
 /* TEMPERATURE INITIALIZATION */
 /******************************/
 void Call_IC(const int IC, double * __restrict u0){
-  int i, j, o; 
+  int i, j, k, o; const int XY=NX*NY;
   switch (IC) {
   case 1: {
-    for (j = 0; j < NY; j++) {
-      for (i = 0; i < NX; i++) {
-	// set all domain's cells equal to zero
-	o = i+NX*j;  u0[o] = 0.0;
-	// set BCs in the domain 
-	if (j==0)    u0[o] = 0.0; // bottom
-	if (i==0)    u0[o] = 0.0; // left
-	if (j==NY-1) u0[o] = 1.0; // top
-	if (i==NX-1) u0[o] = 1.0; // right
+    for (k = 0; k < NZ; k++) {
+      for (j = 0; j < NY; j++) {
+	for (i = 0; i < NX; i++) {
+	  // set all domain's cells equal to zero
+	  o = i+NX*j+XY*k;  u0[o] = 0.0;
+	  // set BCs in the domain 
+	  if (k==0)    u0[o] = 1.0; // bottom
+	  if (k==NZ-1) u0[o] = 1.0; // top
+	}
       }
     }
     break;
   }
   case 2: {
-    float u_bl = 0.7f;
-    float u_br = 1.0f;
-    float u_tl = 0.7f;
-    float u_tr = 1.0f;
-
-    for (j = 0; j < NY; j++) {
-      for (i = 0; i < NX; i++) {
-	// set all domain's cells equal to zero
-	o = i+NX*j;  u0[o] = 0.0;
-	// set BCs in the domain 
-	if (j==0)    u0[o] = u_bl + (u_br-u_bl)*i/(NX+1); // bottom
-	if (j==NY-1) u0[o] = u_tl + (u_tr-u_tl)*i/(NX+1); // top
-	if (i==0)    u0[o] = u_bl + (u_tl-u_bl)*j/(NY+1); // left
-	if (i==NX-1) u0[o] = u_br + (u_tr-u_br)*j/(NY+1); // right
-      }
-    }
-    break;
-  }
-  case 3: {
-    for (j = 0; j < NY; j++) {
-      for (i = 0; i < NX; i++) {
-	// set all domain's cells equal to zero
-	o = i+NX*j;  u0[o] = 0.0;
-	// set left wall to 1
-	if (i==NX-1) u0[o] = 1.0;
+    for (k = 0; k < NZ; k++) {
+      for (j = 0; j < NY; j++) {
+	for (i = 0; i < NX; i++) {
+	  // set all domain's cells equal to zero
+	  o = i+NX*j+XY*k;  
+	  u0[o] = 1.0*exp(
+			  -(DX*(i-NX/2))*(DX*(i-NX/2))/1.5
+			  -(DY*(j-NY/2))*(DY*(j-NY/2))/1.5
+			  -(DZ*(k-NZ/2))*(DZ*(k-NZ/2))/12);
+	}
       }
     }
     break;
@@ -104,11 +90,14 @@ void Call_IC(const int IC, double * __restrict u0){
 
 void Save_Results(double *u){
   // print result to txt file
-  FILE *pFile = fopen("result.txt", "w");
+  FILE *pFile = fopen("result.txt", "w");  
+  const int XY=NX*NY;
   if (pFile != NULL) {
-    for (int j = 0; j < NY; j++) {
-      for (int i = 0; i < NX; i++) {      
-	fprintf(pFile, "%d\t %d\t %g\n",j,i,u[i+NX*j]);
+    for (int k = 0;k < NZ; k++) {
+      for (int j = 0; j < NY; j++) {
+	for (int i = 0; i < NX; i++) {      
+	  fprintf(pFile, "%d\t %d\t %d\t %g\n",k,j,i,u[i+NX*j+XY*k]);
+	}
       }
     }
     fclose(pFile);
@@ -144,29 +133,30 @@ void Manage_Comms(int phase, int domain, double **u) {
   //if (r==p-1) Set_DirichletBC(*u,n,'R',1.0); // impose Dirichlet BC u[n+1] = 0.0
 }
 
-void Laplace2d(int nx, int ny, float *u,float *un){
-  // Using (i,j) = [i+N*j] indexes
-  int o, n, s, e, w;
-  for (int j = 0; j < nx; j++) {
-    for (int i = 0; i < ny; i++) {
+void Laplace2d(const int nx, const int ny, const int nz, 
+	       const double * __restrict__ u, double * __restrict__ un){
+  // Using (i,j,k) = [i+N*j+M*N*k] indexes
+  int i, j, k, o, n, s, e, w, t, b; 
+  const int XY=nx*ny;
+  for (k = 0; k < nz; k++) {
+    for (j = 0; j < ny; j++) {
+      for (i = 0; i < nx; i++) {
+	
+	o = i+ (NX*j) + (XY*k); // node( j,i,k )      n  b
+	n = (i==NX-1) ? o:o+NX; // node(j+1,i,k)      | /
+	s = (i==0)    ? o:o-NX; // node(j-1,i,k)      |/
+	e = (j==NY-1) ? o:o+1;  // node(j,i+1,k)  w---o---e
+	w = (j==0)    ? o:o-1;  // node(j,i-1,k)     /|
+	t = (k==NZ-1) ? o:o+XY; // node(j,i,k+1)    / |
+	b = (k==0)    ? o:o-XY; // node(j,i,k-1)   t  s
 
-        o =  i + nx*j ; // node( j,i )     n
-	n = i+nx*(j+1); // node(j+1,i)     |
-	s = i+nx*(j-1); // node(j-1,i)  w--o--e
-	e = (i+1)+nx*j; // node(j,i+1)     |
-	w = (i-1)+nx*j; // node(j,i-1)     s
-
-	// only update "interior" nodes
-	if(i>0 && i<nx-1 && j>0 && j<ny-1) {
-	  un[o] = u[o] + KX*(u[e]-2*u[o]+u[w]) + KY*(u[n]-2*u[o]+u[s]);
-	} else {
-	  un[o] = u[o];
-	}
-    }
-  } 
+	un[o] = u[o] + KX*(u[e]-2*u[o]+u[w]) + KY*(u[n]-2*u[o]+u[s]) + KZ*(u[t]-2*u[o]+u[b]);
+      }
+    } 
+  }
 }
 
-void Call_Laplace(dmn domain, float **u, float **un){
+void Call_Laplace(dmn domain, double **u, double **un){
   // Produce one iteration of the laplace operator
-  Laplace2d(domain.nx,domain.ny,*u,*un);
+  Laplace2d(domain.nx,domain.ny,domain.nz,*u,*un);
 }

@@ -127,7 +127,7 @@ void Call_Init(float **u0){
 /************************************/
 
 void Laplace2d_CPU(float *u,float *un){
-  // Using (i,j) = [i+N*j+M*N*k] indexes
+  // Using (i,j,k) = [i+N*j+M*N*k] indexes
   int i, j, k, o, n, s, e, w, t, b; 
   const int XY=NX*NY;
   for (j = 0; j < NY; j++) {

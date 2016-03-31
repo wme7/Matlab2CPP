@@ -1,5 +1,5 @@
 
-#include "heat2d.h"
+#include "heat3d.h"
 #include <time.h>
 
 /****************/
