@@ -31,9 +31,12 @@ int main ( int argc, char *argv[] ) {
   // Allocate Memory
   Manage_Memory(0,rank,size,nx,&g_u,&t_u,&t_un);
 
-  // Build Initial Condition and manage Internal Boundaries (halo regions)
-  Call_IC(2,rank,size,nx,t_u); Manage_Comms(rank,size,nx,&t_u); 
-  MPI_Barrier(MPI_COMM_WORLD);
+  // Root mode: Build Initial Condition and scatter it to all processes
+  if (rank==ROOT) Call_IC(2,g_u); 
+  MPI_Scatter(g_u, nx, MPI_DOUBLE, t_u+R, nx, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
+
+  // Exchange halo data
+  Manage_Comms(rank,size,nx,&t_u); MPI_Barrier(MPI_COMM_WORLD);
 
   // ROOT mode: Record the starting time.
   if (rank==ROOT) wtime=MPI_Wtime();
@@ -56,7 +59,7 @@ int main ( int argc, char *argv[] ) {
   }
   
   // Gather solutions to ROOT and write solution in ROOT mode
-  MPI_Gather(t_u+1, nx, MPI_DOUBLE, g_u, nx, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
+  MPI_Gather(t_u+2, nx, MPI_DOUBLE, g_u, nx, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
   if (rank==ROOT) Save_Results(g_u);
 
   // Free Memory

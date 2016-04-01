@@ -34,37 +34,27 @@ void Manage_Memory(int phase, int rank, int size, int nx, double **g_u, double *
     *h_un=(double*)malloc((nx+2)*sizeof(double));
   }
   if (phase==1) {
+    // Free global domain on ROOT
+    if (rank==ROOT) free(*g_u);
     // Free the domain on host
     free(*h_u);
     free(*h_un);
   }
 }
 
-void Call_IC(const int IC, int rank, int size, int nx, double *u0){
+void Call_IC(const int IC, double *u0){
   // Set initial condition in global domain
   switch (IC) {
-    case 0: {
-      // For testing the communications
-      if (rank<size) {
-	for (int i = 0; i < nx; i++) u0[i+1]=0.2 + 0.2*rank;
-      }
-      break;
-    }
     case 1: {
       // Uniform Temperature in the domain, temperature will be imposed at boundaries
-      for (int i = 0; i < nx; i++) {u0[i+1]=0.0;}
+      for (int i = 0; i < NX; i++) u0[i]=0.0;
       // Set Dirichlet boundary conditions in global domain as u0[0]=0.0;  u0[NX]=1.0; namely
-      if (rank==0)      u0[ 0+1]=0.0;
-      if (rank==size-1) u0[nx+1]=1.0;
+      u0[0]=0.0; u0[NX]=1.0;
       break;
     }
     case 2: {
       // A square jump problem
-      int idx; // global index
-      int i;   // local index
-      for (i= 0; i < nx; i++) { idx = rank*nx+i; 
-	if (idx>0.3*NX && idx<0.7*NX) u0[i+1]=1.0; else u0[i+1]=0.0;
-      } // +1: cell biased becuase of the hallo radius
+      for (int i= 0; i < NX; i++) {if (i>0.3*NX && i<0.7*NX) u0[i]=1.0; else u0[i]=0.0;}
       // Set Neumann boundary conditions in global domain u0'[0]=0.0;  u0'[NX]=0.0;
       break;
     }

@@ -5,8 +5,8 @@
 #include <mpi.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 12 // number of cells in the x-direction
-#define NY 12 // number of cells in the y-direction
+#define NX 512 // number of cells in the x-direction
+#define NY 512 // number of cells in the y-direction
 #define L 10.0 // domain length
 #define W 10.0 // domain width
 #define C 1.0 // c, material conductivity. Uniform assumption.
@@ -19,8 +19,6 @@
 #define NO_STEPS (TEND/DT) // No. of time steps
 #define R 1 // radius or width of the hallo region
 #define ROOT 0 // define root process
-#define SX 1 // sub-grids in the x-direction
-#define SY 2 // sub-grids in the y-direction
 #define PI 3.1415926535897932f // PI number
 
 /* Declare structures */
@@ -33,13 +31,11 @@ typedef struct {
 } dmn;
 
 /* Declare functions */
-dmn Manage_Domain(int rank, int npcs);
+ dmn Manage_Domain(int rank, int npcs);
+void Manage_Comms(dmn domain, double **h_u);
 void Manage_Memory(int phase, dmn domain, double **g_u, double **h_u, double **h_un);
-void Manage_Comms(dmn domain, double **h_u, double **h_u_old);
-
 void Call_Laplace(dmn domain, double **h_u, double **h_un);
-void Call_IC(int IC, double *h_u);
-
 void Print_SubDomain(dmn domain, double *h_u);
+void Call_IC(int IC, double *h_u);
 void Save_Results(double *h_u);
 

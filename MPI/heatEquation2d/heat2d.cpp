@@ -2,17 +2,17 @@
 #include "heat2d.h"
 
 dmn Manage_Domain(int rank, int npcs){
-  // allocate domain and its data
+  // allocate sub-domain for a one-dimensional domain decomposition in the Y-direction
   dmn domain;
   domain.rank = rank;
   domain.npcs = npcs;
-  domain.nx = NX/SX;
-  domain.ny = NY/SY;
+  domain.nx = NX/1;
+  domain.ny = NY/npcs;
   domain.size = domain.nx*domain.ny;
   
   // All process have by definition the same domain dimensions
-  if ((NX*NY)%npcs != 0) {
-    printf("Sorry, the domain size should be (%d*np) x (%d*1) = NX x NY cells.\n",
+  if ( NY%npcs != 0 ) {
+    printf("Sorry, the domain size should be (%d*1) x (%d*np) = NX x NY cells.\n",
 	   domain.nx,domain.ny);
     MPI_Abort(MPI_COMM_WORLD,1);
   }
@@ -78,10 +78,10 @@ void Call_IC(const int IC, double * __restrict u0){
 	// set all domain's cells equal to zero
 	o = i+NX*j;  u0[o] = 0.0;
 	// set BCs in the domain 
-	if (j==0)    u0[o] = u_bl + (u_br-u_bl)*i/(NX+1); // bottom
-	if (j==NY-1) u0[o] = u_tl + (u_tr-u_tl)*i/(NX+1); // top
-	if (i==0)    u0[o] = u_bl + (u_tl-u_bl)*j/(NY+1); // left
-	if (i==NX-1) u0[o] = u_br + (u_tr-u_br)*j/(NY+1); // right
+	if (j==0)    u0[o] = u_bl + (u_br-u_bl)*i/(NX-1); // bottom
+	if (j==NY-1) u0[o] = u_tl + (u_tr-u_tl)*i/(NX-1); // top
+	if (i==0)    u0[o] = u_bl + (u_tl-u_bl)*j/(NY-1); // left
+	if (i==NX-1) u0[o] = u_br + (u_tr-u_br)*j/(NY-1); // right
       }
     }
     break;
@@ -126,20 +126,49 @@ void Print_SubDomain(dmn domain, double *u){
   }
 }
 
-void Manage_Comms(dmn domain, double **u, double **u_old) {
+void Set_DirichletBC(double *u, const int j, const char letter){
+  switch (letter) {
+  case 'B': { /* bottom BC */
+    float u_bl = 0.7f;
+    float u_br = 1.0f;
+    for (int i = 0; i < NX; i++) u[i+NX*j] = u_bl + (u_br-u_bl)*i/(NX-1); break;
+  }
+  case 'T': { /* top BC */
+    float u_tl = 0.7f;
+    float u_tr = 1.0f;
+    for (int i = 0; i < NX; i++) u[i+NX*j] = u_tl + (u_tr-u_tl)*i/(NX-1); break;
+  }
+  }
+}
+
+void Set_NeumannBC(double *u, const int j, const char letter){
+  switch (letter) {
+  case 'B': { /* u[ 1 ]=u[ 2 ] */; break;}
+  case 'T': { /* u[ n ]=u[n-1] */; break;}
+  }
+}
+
+void Manage_Comms(dmn domain, double **u) {
   MPI_Status status; 
   MPI_Request rqSendUp, rqSendDown, rqRecvUp, rqRecvDown;
   const int r = domain.rank;
   const int p = domain.npcs;
   const int n = domain.nx;
   const int m = domain.ny;
-  // Communicate halo regions and impose BCs!
-  if (r== 0 ) memcpy(*u+n,*u_old+n,n*sizeof(double)); // impose Dirichlet BC u[row 1]
-  if (r > 0 ) MPI_Isend(*u+n      ,n,MPI_DOUBLE,r-1,1,MPI_COMM_WORLD,&rqSendDown); // send u[row 1 ] to   rank-1
-  if (r <p-1) MPI_Irecv(*u+n*(m+R),n,MPI_DOUBLE,r+1,1,MPI_COMM_WORLD,&rqRecvUp  ); // recv u[row N ] from rank+1
-  if (r <p-1) MPI_Isend(*u+n*m    ,n,MPI_DOUBLE,r+1,2,MPI_COMM_WORLD,&rqSendUp  ); // send u[rowN-1] to   rank+1
-  if (r > 0 ) MPI_Irecv(*u        ,n,MPI_DOUBLE,r-1,2,MPI_COMM_WORLD,&rqRecvDown); // recv u[row 0 ] from rank-1
-  if (r==p-1) memcpy(*u+n*m,*u_old+n*m,n*sizeof(double)); // impose Dirichlet BC u[row N-1]
+  
+// Impose BCs!
+  if (r== 0 ) Set_DirichletBC(*u,1,'B'); // impose Dirichlet BC u[row  1 ]
+  if (r==p-1) Set_DirichletBC(*u,m,'T'); // impose Dirichlet BC u[row M-1]
+
+  // Communicate halo regions
+  if (r <p-1) {
+    MPI_Isend(*u+n*m    ,n,MPI_DOUBLE,r+1,2,MPI_COMM_WORLD,&rqSendDown); // send u[rowM-1] to   rank+1
+    MPI_Irecv(*u+n*(m+R),n,MPI_DOUBLE,r+1,1,MPI_COMM_WORLD,&rqRecvUp  ); // recv u[row M ] from rank+1
+  }
+  if (r > 0 ) {
+    MPI_Isend(*u+n      ,n,MPI_DOUBLE,r-1,1,MPI_COMM_WORLD,&rqSendUp  ); // send u[row 1 ] to   rank-1
+    MPI_Irecv(*u        ,n,MPI_DOUBLE,r-1,2,MPI_COMM_WORLD,&rqRecvDown); // recv u[row 0 ] from rank-1
+  }
 
   // Wait for process to complete
   if(r <p-1) {
@@ -152,20 +181,20 @@ void Manage_Comms(dmn domain, double **u, double **u_old) {
   }
 }
 
-void Laplace2d(const int nx, const int ny, const double * __restrict__ u, double * __restrict__ un){
+void Laplace2d(const int ny, const double * __restrict__ u, double * __restrict__ un){
   // Using (i,j) = [i+N*j] indexes
   int o, n, s, e, w;
-  for (int j = 0; j < nx; j++) {
-    for (int i = 0; i < ny; i++) {
+  for (int j = 0; j < ny; j++) {
+    for (int i = 0; i < NX; i++) {
 
-      o =  i + nx*j ; // node( j,i )     n
-      n = i+nx*(j+1); // node(j+1,i)     |
-      s = i+nx*(j-1); // node(j-1,i)  w--o--e
-      e = (i+1)+nx*j; // node(j,i+1)     |
-      w = (i-1)+nx*j; // node(j,i-1)     s
+      o =  i + NX*j ; // node( j,i )     n
+      n = i+NX*(j+1); // node(j+1,i)     |
+      s = i+NX*(j-1); // node(j-1,i)  w--o--e
+      e = (i+1)+NX*j; // node(j,i+1)     |
+      w = (i-1)+NX*j; // node(j,i-1)     s
       
       // only update "interior" nodes
-      if(i>0 && i<nx-1 && j>0 && j<ny-1) {
+      if(i>0 && i<NX-1 && j>0 && j<ny-1) {
 	un[o] = u[o] + KX*(u[e]-2*u[o]+u[w]) + KY*(u[n]-2*u[o]+u[s]);
       } else {
 	un[o] = u[o];
@@ -176,5 +205,5 @@ void Laplace2d(const int nx, const int ny, const double * __restrict__ u, double
 
 void Call_Laplace(dmn domain, double **u, double **un){
   // Produce one iteration of the laplace operator
-  Laplace2d(domain.nx,domain.ny+2*R,*u,*un);
+  Laplace2d(domain.ny+2*R,*u,*un);
 }
