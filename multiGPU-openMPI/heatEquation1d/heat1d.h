@@ -1,21 +1,26 @@
-// Assume we will create 5 threads using OpenMPI
-// Thread 0 will do nothing but coordinate
-// Threads 1-4 will have 25+2 elements each.
 
-#define N 100		// Total problem size
-#define NP 25		// 100/4 (shared across 4 ranks)
-#define DEBUG 1		// Print debug messages (set to 0 to turn off)
-#define PHI 0.1		// Our CFL for the HT problem
-#define USE_GPU 1	// Use GPU (set to 0 to turn off)
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <mpi.h>
 
-void Allocate_Memory(int rank, float **h_a, float **d_a, float **d_b); 
-void Free_Memory(int rank, float **h_a, float **d_a, float **d_b);
+#define DEBUG 0 // Display all error messages
+#define NX 1024 // number of cells in the x-direction 
+#define L 10.0 // domain length
+#define C 1.0 // c, material conductivity. Uniform assumption.
+#define TEND 0.1 // tEnd, output time
+#define DX (L/NX) // dx, cell size
+#define DT (1/(2*C*(1/DX/DX))) // dt, fix time step size
+#define KX (C*DT/(DX*DX)) // numerical conductivity
+#define NO_STEPS (TEND/DT) // No. of time steps
+#define R 1 // radius of halo region
+#define ROOT 0 // define root processor
+#define PI 3.1415926535897932f
 
-void Copy_All_To_GPU(int rank, float **h_a, float **d_a, float **d_b);
-void Copy_All_From_GPU(int rank, float **h_a, float **d_a, float **d_b);
-
-void CPU_Compute(int rank, float *h_a, float *h_b);
-
-void GPU_Compute(int rank, float **d_a, float **d_b);
-void GPU_Send_Ends(int rank, float **h_a, float  **d_a);
-void GPU_Recieve_Ends(int rank, float **h_a, float  **d_a);
+/* Declare functions */
+int Manage_Domain(int phase, int rank, int size);
+void Manage_Memory(int phase, int rank, int size, int nx, double **g_u, double **h_u, double **h_un);
+void Manage_Comms(int rank, int size, int nx, double **h_u);
+void Call_Laplace(int nx, double **h_u, double **h_un);
+void Call_IC(int IC, double *h_u);
+void Save_Results(double *h_u);

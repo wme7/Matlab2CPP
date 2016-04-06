@@ -1,5 +1,5 @@
 
-#include "heat1d.h"
+#include "heat3d.h"
 #include <time.h>
 
 /****************/
@@ -9,10 +9,10 @@
 int main ( int argc, char *argv[] ) {
 
   // Auxiliary variables
-  int nx;
   int rank;
-  int size;
+  int npcs;
   int step;
+  dmn domain;
   double wtime;
 
   // Solution arrays
@@ -23,20 +23,20 @@ int main ( int argc, char *argv[] ) {
   // Initialize MPI
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  MPI_Comm_size(MPI_COMM_WORLD, &npcs);
 
   // Manage Domain sizes
-  nx = Manage_Domain(0,rank,size); 
+  domain = Manage_Domain(rank,npcs); 
 
   // Allocate Memory
-  Manage_Memory(0,rank,size,nx,&g_u,&t_u,&t_un);
+  Manage_Memory(0,domain,&g_u,&t_u,&t_un);
 
-  // Root mode: Build Initial Condition and scatter it to all processes
-  if (rank==ROOT) Call_IC(2,g_u); 
-  MPI_Scatter(g_u, nx, MPI_DOUBLE, t_u+R, nx, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
+  // Root mode: Build Initial Condition and scatter it to the rest of processors
+  if (domain.rank==ROOT) Call_IC(2,g_u);
+  MPI_Scatter(g_u, domain.size, MPI_DOUBLE, t_u+NX*NY, domain.size, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
 
-  // Exchange halo data
-  Manage_Comms(rank,size,nx,&t_u); MPI_Barrier(MPI_COMM_WORLD);
+  // Exchage Halo regions
+  Manage_Comms(domain,&t_u); MPI_Barrier(MPI_COMM_WORLD);
 
   // ROOT mode: Record the starting time.
   if (rank==ROOT) wtime=MPI_Wtime();
@@ -47,8 +47,8 @@ int main ( int argc, char *argv[] ) {
     if (rank==ROOT && step%10000==0) printf("  Step %d of %d\n",step,(int)NO_STEPS);
     
     // Exchange Boundaries and compute stencil
-    Call_Laplace(nx,&t_u,&t_un); Manage_Comms(rank,size,nx,&t_un); // 1st iter
-    Call_Laplace(nx,&t_un,&t_u); Manage_Comms(rank,size,nx,&t_u ); // 2nd iter
+    Call_Laplace(domain,&t_u,&t_un); Manage_Comms(domain,&t_un); // 1st iter
+    Call_Laplace(domain,&t_un,&t_u); Manage_Comms(domain,&t_u ); // 2nd iter
   }
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -59,12 +59,11 @@ int main ( int argc, char *argv[] ) {
   }
   
   // Gather solutions to ROOT and write solution in ROOT mode
-  MPI_Gather(t_u+2, nx, MPI_DOUBLE, g_u, nx, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
+  MPI_Gather(t_u+NX*NY, domain.size, MPI_DOUBLE, g_u, domain.size, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
   if (rank==ROOT) Save_Results(g_u);
 
   // Free Memory
-  Manage_Memory(1,rank,size,nx,&g_u,&t_u,&t_un); 
-  MPI_Barrier(MPI_COMM_WORLD);
+  Manage_Memory(1,domain,&g_u,&t_u,&t_un); MPI_Barrier(MPI_COMM_WORLD);
 
   // Terminate MPI.
   MPI_Finalize();
