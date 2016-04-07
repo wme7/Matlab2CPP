@@ -7,7 +7,7 @@
 #define LEFT  2
 #define RIGHT 3
 
-/* Run with 12 processes */
+/* Run with 4x3 = 12 processes, otherwise MPI will submit an Error */
 
 int main(int argc, char *argv[]) {
 
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
   int in[4] = {}; // empty array
   int tag = 2; // tag
 
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 4; i++) { // following the neighbours order!!
     MPI_Isend( &out ,1,MPI_INT,nbrs[i],tag,MPI_COMM_WORLD,&reqSendRecv[ i ]);
     MPI_Irecv(&in[i],1,MPI_INT,nbrs[i],tag,MPI_COMM_WORLD,&reqSendRecv[i+4]);
   }
