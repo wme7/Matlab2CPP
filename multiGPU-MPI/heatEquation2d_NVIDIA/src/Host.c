@@ -351,17 +351,17 @@ void PostRunJacobi(MPI_Comm cartComm, int rank, int size, const int2 * topSize, 
 /**
  * @brief This performs the exchanging of all necessary halos between 2 neighboring MPI processes
  *
- * @param[in]		cartComm		The carthesian MPI communicator
- * @param[in]		domSize			The 2D size of the local domain
- * @param[in]		topIndex		The 2D index of the calling MPI process in the topology
- * @param[in]		neighbors		The list of ranks which are direct neighbors to the caller
- * @param[in]		copyStream		The stream used to overlap top & bottom halo exchange with side halo copy to host memory
- * @param[in, out]	devBlocks		The 2 device blocks that are updated during the Jacobi run
+ * @param[in]		cartComm	The carthesian MPI communicator
+ * @param[in]		domSize		The 2D size of the local domain
+ * @param[in]		topIndex	The 2D index of the calling MPI process in the topology
+ * @param[in]		neighbors	The list of ranks which are direct neighbors to the caller
+ * @param[in]		copyStream	The stream used to overlap top & bottom halo exchange with side halo copy to host memory
+ * @param[in, out]	devBlocks	The 2 device blocks that are updated during the Jacobi run
  * @param[in, out]	devSideEdges	The 2 side edges (parallel to the Y direction) that hold the packed halo values before sending them
  * @param[in, out]	devHaloLines	The 2 halo lines (parallel to the Y direction) that hold the packed halo values after receiving them
  * @param[in, out] 	hostSendLines	The 2 host send buffers that are used during the halo exchange by the normal CUDA & MPI version
  * @param[in, out]	hostRecvLines	The 2 host receive buffers that are used during the halo exchange by the normal CUDA & MPI version
- * @return							The time spent during the MPI transfers
+ * @return				The time spent during the MPI transfers
  */
 double TransferAllHalos(MPI_Comm cartComm, const int2 * domSize, const int2 * topIndex, const int * neighbors, cudaStream_t copyStream,
 	real * devBlocks[2], real * devSideEdges[2], real * devHaloLines[2], real * hostSendLines[2], real * hostRecvLines[2])

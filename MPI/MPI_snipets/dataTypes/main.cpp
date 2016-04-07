@@ -41,19 +41,19 @@ int main(int argc, char **argv) {
       // print the big array
       print(bigarray, bigsize);
 	
-      // build a MPI data type for a subarray
+      // build a MPI data type for a subarray in Root processor
       MPI_Datatype mysubarray;
       int starts[2] = {5,3};
       int subsizes[2]  = {subsize,subsize};
       int bigsizes[2]  = {bigsize,bigsize};
-      MPI_Type_create_subarray(2, bigsizes, subsizes, starts,MPI_ORDER_C, MPI_INT, &mysubarray);
+      MPI_Type_create_subarray(2, bigsizes, subsizes, starts, MPI_ORDER_C, MPI_INT, &mysubarray);
       MPI_Type_commit(&mysubarray); // now we can use this MPI costum data type
 
       // send a 5x5 piece of the big data array 
       MPI_Send(&(bigarray[0][0]), 1, mysubarray, receiver, ourtag, MPI_COMM_WORLD);
-      MPI_Type_free(&mysubarray);
 
       // we dont need anymore the big array stored in root processor
+      MPI_Type_free(&mysubarray);
       free(bigarray[0]);
       free(bigarray);
 

@@ -71,6 +71,7 @@ int main(int argc, char *argv[]) {
       printf("  Device has ECC support:                        %s\n", deviceProp.ECCEnabled ? "Enabled" : "Disabled");
       printf("  Device supports Unified Addressing (UVA):      %s\n", deviceProp.unifiedAddressing ? "Yes" : "No");
       printf("  Device PCI Bus ID / PCI location ID:           %d / %d\n", deviceProp.pciBusID, deviceProp.pciDeviceID);
+      printf("  Device support overlaps from streams:          %s\n", deviceProp.deviceOverlap ? "Yes" : "No" );
       const char *sComputeMode[] =
         {
             "Default (multiple host threads can use ::cudaSetDevice() with device simultaneously)",
