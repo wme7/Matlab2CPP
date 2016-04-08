@@ -10,8 +10,8 @@ int main ( int argc, char *argv[] ) {
 
   // Solution arrays
   double *h_u; /* will be allocated in ROOT only */ 
-  double *d_u;
-  double *d_un;
+  double *t_u;
+  double *t_un;
 
   // Auxiliary variables
   int rank;
@@ -46,12 +46,19 @@ int main ( int argc, char *argv[] ) {
   domain = Manage_Domain(rank,npcs,dim); 
 
   // Allocate Memory
-  Manage_Memory(0,domain,&h_u,&d_u,&d_un);
+  Manage_Memory(0,domain,&h_u,&t_u,&t_un);
 
   // Root mode: Build Initial Condition 
   if (domain.rank==ROOT) Call_IC(2,h_u);
 
   // Build 2d subarray data type and scatter IC to all processes
+  int sizes[2]    = { NX , NY };           /* global size */
+  int subsizes[2] = {domain.nx,domain.ny}; /* local size */
+  int starts[2]   = {0,0};                 /* where this one starts */
+  MPI_Datatype type, subarrtype;
+  MPI_Type_create_subarray(2, sizes, subsizes, starts, MPI_ORDER_C, MPI_DOUBLE, &type);
+  MPI_Type_create_resized(type, 0, gridsize/procgridsize*sizeof(int), &subarrtype);
+  MPI_Type_commit(&subarrtype);
   
   //MPI_Scatter(g_u, domain.size, MPI_DOUBLE, t_u+NX, domain.size, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
 
@@ -82,7 +89,7 @@ int main ( int argc, char *argv[] ) {
   if (rank==ROOT) Save_Results(h_u);
 
   // Free Memory
-  Manage_Memory(1,domain,&h_u,&d_u,&d_un); MPI_Barrier(MPI_COMM_WORLD);
+  Manage_Memory(1,domain,&h_u,&t_u,&t_un); MPI_Barrier(MPI_COMM_WORLD);
 
   // Terminate MPI.
   MPI_Finalize();

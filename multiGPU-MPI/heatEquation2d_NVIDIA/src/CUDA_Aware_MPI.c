@@ -59,7 +59,7 @@ void ExchangeHalos(MPI_Comm cartComm, real * devSend, real * hostSend, real * ho
 	{
 		// Here it is not necessary to use host buffers and intermediate memory transfers
 		MPI_Sendrecv(devSend, elemCount, MPI_CUSTOM_REAL, neighbor, 0, 
-					 devRecv, elemCount, MPI_CUSTOM_REAL, neighbor, 0, cartComm, &status);
+			     devRecv, elemCount, MPI_CUSTOM_REAL, neighbor, 0, cartComm, &status);
 		SafeCheckMPIStatus(&status, elemCount);
 	}
 }

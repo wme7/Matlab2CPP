@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <mpi.h>
 
-
 // neighbours convention
 #define UP    0
 #define DOWN  1
@@ -107,16 +106,23 @@ int main(int argc, char **argv) {
     MPI_Type_create_subarray(2, bigsizes2, subsizes2, starts2, MPI_ORDER_C, MPI_INT, &mysubarray2);
     MPI_Type_commit(&mysubarray2); // now we can use this MPI costum data type
 
+    // halo data types
+    MPI_Datatype xSlice, ySlice;
+    MPI_Type_vector(subsize, 1,    1   , MPI_INT, &xSlice);
+    MPI_Type_vector(subsize, 1, subsize, MPI_INT, &ySlice);
+    MPI_Type_commit(&xSlice);
+    MPI_Type_commit(&ySlice);
 
     // Allocate 2d big-array in root processor
     int i, j;
     int *bigarray; // to be allocated only in root
     if (rank==ROOT) {
       bigarray = (int*)malloc(bigsize*bigsize*sizeof(int));
-      for (i=0; i<bigsize; i++)
-	for (j=0; j<bigsize; j++)
+      for (i=0; i<bigsize; i++) {
+	for (j=0; j<bigsize; j++) {
 	  bigarray[i*bigsize+j] = i*bigsize+j;
-      
+	}
+      }
       // print the big array
       print(bigarray, bigsize);
     }
@@ -135,7 +141,7 @@ int main(int argc, char **argv) {
     int displs[subsize*subsize];
     if (rank==ROOT) {
         for (i=0; i<subsize*subsize; i++) sendcounts[i] = 1;
-        int disp = 0;
+        int disp = 0; printf("\n");
         for (i=0; i<subsize; i++) {
             for (j=0; j<subsize; j++) {
                 displs[i*subsize+j] = disp;
@@ -148,7 +154,7 @@ int main(int argc, char **argv) {
 
     // scatter 3x3 pieces of the big data array 
     MPI_Scatterv(bigarray, sendcounts, displs, subarrtype, 
-		 subarray, bigsize/(subsize*subsize), mysubarray2, ROOT, Comm2d);
+		 subarray, 1, mysubarray2, ROOT, Comm2d);
 
     // add +1 to every data point
     for (i=0; i<subsize+2*R; i++) {
@@ -156,13 +162,24 @@ int main(int argc, char **argv) {
 	subarray[i*(subsize+2*R)+j] += 1; // increase by one the value
       }
     }
+    
+    // Exchange x - slices with top and bottom neighbors 
+    MPI_Sendrecv(&(subarray[3*(subsize+2*R)+1]), 1, xSlice, nbrs[UP]  ,1, 
+		 &(subarray[0*(subsize+2*R)+1]), 1, xSlice, nbrs[DOWN],1, Comm2d, MPI_STATUS_IGNORE);
+    MPI_Sendrecv(&(subarray[1*(subsize+2*R)+1]), 1, xSlice, nbrs[DOWN],2, 
+		 &(subarray[4*(subsize+2*R)+1]), 1, xSlice, nbrs[UP]  ,2, Comm2d, MPI_STATUS_IGNORE);
+    // Exchange y - slices with left and right neighbors 
+    MPI_Sendrecv(&(subarray[1*(subsize+2*R)+3]), 1, ySlice, nbrs[RIGHT],3, 
+		 &(subarray[1*(subsize+2*R)+0]), 1, ySlice, nbrs[LEFT] ,3, Comm2d, MPI_STATUS_IGNORE);
+    MPI_Sendrecv(&(subarray[1*(subsize+2*R)+1]), 1, ySlice, nbrs[LEFT] ,4, 
+		 &(subarray[1*(subsize+2*R)+4]), 1, ySlice, nbrs[RIGHT],4, Comm2d, MPI_STATUS_IGNORE);
 
     // selected reciver processor prints the subarray
-    if (rank==7) print(subarray, subsize+2*R);
+    if (rank==4) print(subarray, subsize+2*R);
     MPI_Barrier(Comm2d);
 
     // gather all 3x3 pieces into the big data array
-    MPI_Gatherv(subarray, bigsize/(subsize*subsize), mysubarray2, 
+    MPI_Gatherv(subarray, 1, mysubarray2, 
     		bigarray, sendcounts, displs, subarrtype, ROOT, Comm2d);
     
     // print the bigarray and free array in root
@@ -171,6 +188,7 @@ int main(int argc, char **argv) {
       MPI_Type_free(&mysubarray);
       free(bigarray);
     }
+
     // free arrays in workers
     MPI_Type_free(&mysubarray2);
     free(subarray);

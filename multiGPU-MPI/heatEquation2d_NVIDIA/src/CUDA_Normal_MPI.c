@@ -54,7 +54,7 @@ void ExchangeHalos(MPI_Comm cartComm, real * devSend, real * hostSend, real * ho
 	{
 		SafeCudaCall(cudaMemcpy(hostSend, devSend, byteCount, cudaMemcpyDeviceToHost));
 		MPI_Sendrecv(hostSend, elemCount, MPI_CUSTOM_REAL, neighbor, 0, 
-					 hostRecv, elemCount, MPI_CUSTOM_REAL, neighbor, 0, cartComm, &status);
+			     hostRecv, elemCount, MPI_CUSTOM_REAL, neighbor, 0, cartComm, &status);
 		SafeCheckMPIStatus(&status, elemCount);
 		SafeCudaCall(cudaMemcpy(devRecv, hostRecv, byteCount, cudaMemcpyHostToDevice));
 	}

@@ -1,3 +1,3 @@
 make clean
 make
-mpirun -np 9 test3.run
+mpirun -np 9 test4.run
