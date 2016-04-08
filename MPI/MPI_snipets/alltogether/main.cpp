@@ -94,7 +94,7 @@ MPI_Type_commit(&mysubarray); // now we can use this MPI costum data type
 MPI_Datatype mysubarray2;
 int bigsizes2[2]  = {subsize+2*R,subsize+2*R};
 int subsizes2[2]  = {subsize,subsize};
-int starts2[2] = {0,0};
+int starts2[2] = {R,R};
 MPI_Type_create_subarray(2, bigsizes2, subsizes2, starts2, MPI_ORDER_C, MPI_INT, &mysubarray2);
 MPI_Type_commit(&mysubarray2); // now we can use this MPI costum data type
 
@@ -127,7 +127,7 @@ MPI_Type_commit(&mysubarray2); // now we can use this MPI costum data type
 	  subarray[i*(subsize+2*R)+j] = 0;
       
       // recieve the sub-array
-MPI_Recv(&(subarray[R*(subsize+2*R)+R]), subsize*subsize, mysubarray2, 0, 1, Comm2d, MPI_STATUS_IGNORE);
+      MPI_Recv(subarray, subsize*subsize, mysubarray2, 0, 1, Comm2d, MPI_STATUS_IGNORE);
 	
       // reciver processor prints the subarray
       print(subarray, subsize+2*R);

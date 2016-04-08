@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <mpi.h>
 
+
 // neighbours convention
 #define UP    0
 #define DOWN  1
@@ -9,7 +10,11 @@
 #define RIGHT 3
 
 // hallo radius
-#define R 2
+#define R 1
+
+// root processor
+#define ROOT 0
+
 
 void print(int *data, int n) {    
   printf("-- output --\n");
@@ -21,6 +26,7 @@ void print(int *data, int n) {
   }
 }
 
+
 int main(int argc, char **argv) {
 
     int rank, size;
@@ -30,7 +36,7 @@ int main(int argc, char **argv) {
 
     // if number of np != 9 then terminate. 
     if (size != 9){
-        if (rank == 0)
+        if (rank==ROOT)
             fprintf(stderr,"%s: Needs at least %d processors.\n", argv[0], 9);
         MPI_Finalize();
         return 1;
@@ -84,24 +90,27 @@ int main(int argc, char **argv) {
 
     // build a MPI data type for a subarray in Root processor
     MPI_Datatype mysubarray;
+    MPI_Datatype subarrtype;
     int bigsizes[2]  = {bigsize,bigsize};
     int subsizes[2]  = {subsize,subsize};
     int starts[2] = {0,0};
     MPI_Type_create_subarray(2, bigsizes, subsizes, starts, MPI_ORDER_C, MPI_INT, &mysubarray);
-    MPI_Type_commit(&mysubarray); // now we can use this MPI costum data type
+    //MPI_Type_commit(&mysubarray); // now we can use this MPI costum data type
+    MPI_Type_create_resized(mysubarray, 0, bigsize/subsize*sizeof(int), &subarrtype);
+    MPI_Type_commit(&subarrtype);
     
     // build a MPI data type for a subarray in workers
     MPI_Datatype mysubarray2;
     int bigsizes2[2]  = {subsize+2*R,subsize+2*R};
     int subsizes2[2]  = {subsize,subsize};
-    int starts2[2] = {0,0};
+    int starts2[2] = {R,R};
     MPI_Type_create_subarray(2, bigsizes2, subsizes2, starts2, MPI_ORDER_C, MPI_INT, &mysubarray2);
     MPI_Type_commit(&mysubarray2); // now we can use this MPI costum data type
 
 
     // Allocate 2d big-array in root processor
     int *bigarray; // to be allocated only in root
-    if (rank == 0) {
+    if (rank==ROOT) {
       bigarray = (int*)malloc(bigsize*bigsize*sizeof(int));
       for (int i=0; i<bigsize; i++)
 	for (int j=0; j<bigsize; j++)
@@ -123,29 +132,29 @@ int main(int argc, char **argv) {
     // build sendcounts and displacements in root processor
     int sendcounts[subsize*subsize];
     int displs[subsize*subsize];
-    if (rank==0) {
+    if (rank==ROOT) {
         for (int i=0; i<subsize*subsize; i++) sendcounts[i] = 1;
         int disp = 0;
         for (int i=0; i<subsize; i++) {
             for (int j=0; j<subsize; j++) {
                 displs[i*subsize+j] = disp;
+		printf("%d ",disp);
                 disp += 1;
             }
             disp += ((bigsize/subsize)-1)*subsize;
-        }
-    }
+        } printf("\n");
+    } 
 
     // scatter 3x3 pieces of the big data array 
-    MPI_Scatterv(bigarray,sendcounts,displs,mysubarray,
-		 subarray, 1 ,mysubarray2, 0 , Comm2d);
-
+    MPI_Scatterv(bigarray, sendcounts, displs, subarrtype, 
+		 subarray, bigsize*bigsize/(subsize*subsize), mysubarray2, ROOT, Comm2d);
     MPI_Barrier(Comm2d);
 	
     // reciver processor prints the subarray
-    print(subarray, subsize+2*R);
+    if (rank==7) print(subarray, subsize+2*R);
     
     // free arrays in root
-    if (rank==0) {
+    if (rank==ROOT) {
       MPI_Type_free(&mysubarray);
       free(bigarray);
     }
