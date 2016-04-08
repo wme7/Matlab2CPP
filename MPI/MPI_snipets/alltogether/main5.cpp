@@ -155,14 +155,6 @@ int main(int argc, char **argv) {
     // scatter 3x3 pieces of the big data array 
     MPI_Scatterv(bigarray, sendcounts, displs, subarrtype, 
 		 subarray, 1, mysubarray2, ROOT, Comm2d);
-
-    // add +1 to every data point 
-    /*
-    for (i=0; i<subsize+2*R; i++) {
-      for (j=0; j<subsize+2*R; j++) {
-	subarray[i*(subsize+2*R)+j] += 1; // increase by one the value
-      }
-    }*/
     
     // Exchange x - slices with top and bottom neighbors 
     MPI_Sendrecv(&(subarray[  subsize  *(subsize+2*R)+1]), 1, xSlice, nbrs[UP]  , 1, 
