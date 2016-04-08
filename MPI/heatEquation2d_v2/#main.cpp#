@@ -8,6 +8,11 @@
 
 int main ( int argc, char *argv[] ) {
 
+  // Solution arrays
+  double *h_u; /* will be allocated in ROOT only */ 
+  double *t_u;
+  double *t_un;
+
   // Auxiliary variables
   int rank;
   int npcs;
@@ -16,23 +21,15 @@ int main ( int argc, char *argv[] ) {
   double wtime;
   int nbrs[4];
 
-  // Solution arrays
-  double *h_u; /* will be allocated in ROOT only */ 
-  double *d_u;
-  double *d_un;
-
   // Initialize MPI
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &npcs);
 
-  // Manage Devices
-  Manage_Devices(rank);
-
   // Build a 2D cartessian communicator
   MPI_Comm Comm2d;
   int ndim=2;
-  int dim[2]={2,3}; // domain decomposition subdomains
+  int dim[2]={4,3}; // domain decomposition subdomains
   int period[2]={false,false}; // periodic conditions
   int reorder=true;
   MPI_Cart_create(MPI_COMM_WORLD,ndim,dim,period,reorder,&Comm2d);
@@ -49,12 +46,19 @@ int main ( int argc, char *argv[] ) {
   domain = Manage_Domain(rank,npcs,dim); 
 
   // Allocate Memory
-  Manage_Memory(0,domain,&h_u,&d_u,&d_un);
+  Manage_Memory(0,domain,&h_u,&t_u,&t_un);
 
   // Root mode: Build Initial Condition 
   if (domain.rank==ROOT) Call_IC(2,h_u);
 
-  // Build 2d subarray data tipe and scatter IC to all processes
+  // Build 2d subarray data type and scatter IC to all processes
+  int sizes[2]    = { NX , NY };           /* global size */
+  int subsizes[2] = {domain.nx,domain.ny}; /* local size */
+  int starts[2]   = {0,0};                 /* where this one starts */
+  MPI_Datatype type, subarrtype;
+  MPI_Type_create_subarray(2, sizes, subsizes, starts, MPI_ORDER_C, MPI_DOUBLE, &type);
+  MPI_Type_create_resized(type, 0, gridsize/procgridsize*sizeof(int), &subarrtype);
+  MPI_Type_commit(&subarrtype);
   
   //MPI_Scatter(g_u, domain.size, MPI_DOUBLE, t_u+NX, domain.size, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
 
@@ -85,7 +89,7 @@ int main ( int argc, char *argv[] ) {
   if (rank==ROOT) Save_Results(h_u);
 
   // Free Memory
-  Manage_Memory(1,domain,&h_u,&d_u,&d_un); MPI_Barrier(MPI_COMM_WORLD);
+  Manage_Memory(1,domain,&h_u,&t_u,&t_un); MPI_Barrier(MPI_COMM_WORLD);
 
   // Terminate MPI.
   MPI_Finalize();

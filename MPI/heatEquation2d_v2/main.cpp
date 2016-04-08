@@ -8,6 +8,11 @@
 
 int main ( int argc, char *argv[] ) {
 
+  // Solution arrays
+  double *h_u; /* will be allocated in ROOT only */ 
+  double *d_u;
+  double *d_un;
+
   // Auxiliary variables
   int rank;
   int npcs;
@@ -16,23 +21,15 @@ int main ( int argc, char *argv[] ) {
   double wtime;
   int nbrs[4];
 
-  // Solution arrays
-  double *h_u; /* will be allocated in ROOT only */ 
-  double *d_u;
-  double *d_un;
-
   // Initialize MPI
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &npcs);
 
-  // Manage Devices
-  Manage_Devices(rank);
-
   // Build a 2D cartessian communicator
   MPI_Comm Comm2d;
   int ndim=2;
-  int dim[2]={2,3}; // domain decomposition subdomains
+  int dim[2]={4,3}; // domain decomposition subdomains
   int period[2]={false,false}; // periodic conditions
   int reorder=true;
   MPI_Cart_create(MPI_COMM_WORLD,ndim,dim,period,reorder,&Comm2d);
@@ -54,7 +51,7 @@ int main ( int argc, char *argv[] ) {
   // Root mode: Build Initial Condition 
   if (domain.rank==ROOT) Call_IC(2,h_u);
 
-  // Build 2d subarray data tipe and scatter IC to all processes
+  // Build 2d subarray data type and scatter IC to all processes
   
   //MPI_Scatter(g_u, domain.size, MPI_DOUBLE, t_u+NX, domain.size, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
 
