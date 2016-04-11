@@ -123,11 +123,12 @@ void Save_Results(double *u){
   }
 }
 
-void Print_SubDomain(dmn domain, double *u){
+void Print_SubDomain(int nx, int ny, double *u){
   // print result to terminal
-  for (int j = 0; j < domain.ny+2*R; j++) {
-    for (int i = 0; i < domain.nx+2*0; i++) {      
-      printf("%1.2f ",u[i+domain.nx*j]);
+  printf("-- output --\n");
+  for (int j = 0; j < ny+2*R; j++) {
+    for (int i = 0; i < nx+2*0; i++) {      
+      printf("%1.2f ",u[i+nx*j]);
     }
     printf("\n");
   }

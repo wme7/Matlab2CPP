@@ -9,9 +9,9 @@
 int main ( int argc, char *argv[] ) {
 
   // Solution arrays
-  double *h_u; /* will be allocated in ROOT only */ 
-  double *t_u;
-  double *t_un;
+  real *h_u; /* will be allocated in ROOT only */ 
+  real *t_u;
+  real *t_un;
 
   // Auxiliary variables
   int rank;
@@ -32,18 +32,16 @@ int main ( int argc, char *argv[] ) {
   int dim[2]={4,3}; // domain decomposition subdomains
   int period[2]={false,false}; // periodic conditions
   int reorder=true;
+  int coord[2];
   MPI_Cart_create(MPI_COMM_WORLD,ndim,dim,period,reorder,&Comm2d);
-
-  // obtain current rank coordinates
-  int coord[2]; MPI_Cart_coords(Comm2d,rank,2,coord);
-  printf("P:%2d My coordinates are %d %d\n",rank,coord[0],coord[1]);
+  MPI_Cart_coords(Comm2d,rank,2,coord); // rank coordinates
   
   // Map the neighbours ranks
-  MPI_Cart_shift(Comm2d,0,1,&nbrs[UP],&nbrs[DOWN]);
+  MPI_Cart_shift(Comm2d,0,1,&nbrs[DOWN],&nbrs[UP]);
   MPI_Cart_shift(Comm2d,1,1,&nbrs[LEFT],&nbrs[RIGHT]);
 
   // Manage Domain sizes
-  domain = Manage_Domain(rank,npcs,dim); 
+  domain = Manage_Domain(rank,coord,npcs); 
 
   // Allocate Memory
   Manage_Memory(0,domain,&h_u,&t_u,&t_un);
@@ -51,16 +49,51 @@ int main ( int argc, char *argv[] ) {
   // Root mode: Build Initial Condition 
   if (domain.rank==ROOT) Call_IC(2,h_u);
 
-  // Build 2d subarray data type and scatter IC to all processes
-  int sizes[2]    = { NX , NY };           /* global size */
-  int subsizes[2] = {domain.nx,domain.ny}; /* local size */
-  int starts[2]   = {0,0};                 /* where this one starts */
-  MPI_Datatype type, subarrtype;
-  MPI_Type_create_subarray(2, sizes, subsizes, starts, MPI_ORDER_C, MPI_DOUBLE, &type);
-  MPI_Type_create_resized(type, 0, gridsize/procgridsize*sizeof(int), &subarrtype);
-  MPI_Type_commit(&subarrtype);
+  // Build a MPI data type for a subarray in Root processor
+  MPI_Datatype global, myGlobal;
+  int nx = domain.nx;
+  int ny = domain.ny;
+  int bigsizes[2]  = {NY,NX};
+  int subsizes[2]  = {ny,nx};
+  int starts[2] = {0,0};
+  MPI_Type_create_subarray(2, bigsizes, subsizes, starts, MPI_ORDER_C, MPI_COSTUM_REAL, &global);
+  MPI_Type_create_resized(global, 0, (NX/nx)*sizeof(real), &myGlobal); // extend the type 
+  MPI_Type_commit(&myGlobal);
+    
+  // Build a MPI data type for a subarray in workers
+  MPI_Datatype myLocal;
+  int bigsizes2[2]  = {NY+2*R,NX+2*R};
+  int subsizes2[2]  = {ny,nx};
+  int starts2[2] = {R,R};
+  MPI_Type_create_subarray(2, bigsizes2, subsizes2, starts2, MPI_ORDER_C, MPI_COSTUM_REAL, &myLocal);
+  MPI_Type_commit(&myLocal); // now we can use this MPI costum data type
+
+  // Halo data types
+  MPI_Datatype xSlice, ySlice;
+  MPI_Type_vector(nx, 1,   1   , MPI_COSTUM_REAL, &xSlice);
+  MPI_Type_vector(ny, 1, nx+2*R, MPI_COSTUM_REAL, &ySlice);
+  MPI_Type_commit(&xSlice);
+  MPI_Type_commit(&ySlice);
   
-  //MPI_Scatter(g_u, domain.size, MPI_DOUBLE, t_u+NX, domain.size, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
+  // build sendcounts and displacements in root processor
+  int sendcounts[subsize*subsize];
+  int displs[subsize*subsize];
+  if (rank==ROOT) {
+    for (i=0; i<subsize*subsize; i++) sendcounts[i] = 1;
+    int disp = 0; printf("\n");
+    for (i=0; i<subsize; i++) {
+      for (j=0; j<subsize; j++) {
+	displs[i*subsize+j] = disp;
+	printf("%d ",disp);
+	disp += 1;
+      }
+      disp += ((bigsize/subsize)-1)*subsize;
+    } printf("\n");
+  }
+
+  // Scatter global array data
+  MPI_Scatterv(h_u, sendcounts, displs, subarrtype, 
+	       t_u, 1, mysubarray2, ROOT, Comm2d);
 
   // Exchage Halo regions
   //Manage_Comms(domain,&t_u); MPI_Barrier(MPI_COMM_WORLD); 
@@ -85,11 +118,21 @@ int main ( int argc, char *argv[] ) {
   }
   
   // Gather solutions to ROOT and write solution in ROOT mode
-  //MPI_Gather(t_u+NX, domain.size, MPI_DOUBLE, g_u, domain.size, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
+  MPI_Gatherv(t_u, 1, mysubarray2, 
+	      h_u, sendcounts, displs, subarrtype, ROOT, Comm2d);
+
+  // save results to file
   if (rank==ROOT) Save_Results(h_u);
 
   // Free Memory
   Manage_Memory(1,domain,&h_u,&t_u,&t_un); MPI_Barrier(MPI_COMM_WORLD);
+
+  // Free MPI_types
+  MPI_Type_free(&xSlice);
+  MPI_Type_free(&ySlice);
+  MPI_Type_free(&global);
+  MPI_Type_free(&myLocal);
+  MPI_Type_free(&myGlobal);
 
   // Terminate MPI.
   MPI_Finalize();

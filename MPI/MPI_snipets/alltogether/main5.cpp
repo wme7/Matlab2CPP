@@ -11,15 +11,19 @@
 // hallo radius
 #define R 1
 
+// domain decompostion
+#define Sx 4 // size in x
+#define Sy 3 // size in y
+
 // root processor
 #define ROOT 0
 
 
-void print(int *data, int n) {    
+void print(int *data, int nx, int ny) {    
   printf("-- output --\n");
-  for (int i=0; i<n; i++) {
-    for (int j=0; j<n; j++) {
-     printf("%3d ", data[i*n+j]);
+  for (int i=0; i<ny; i++) {
+    for (int j=0; j<nx; j++) {
+     printf("%3d ", data[i*nx+j]);
     }
     printf("\n");
   }
@@ -30,29 +34,28 @@ int main(int argc, char **argv) {
 
     int rank, size;
     MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    // if number of np != 9 then terminate. 
-    if (size != 9){
-        if (rank==ROOT)
-            fprintf(stderr,"%s: Needs at least %d processors.\n", argv[0], 9);
-        MPI_Finalize();
-        return 1;
+    // if number of np != Sx*Sy then terminate. 
+    if (size != Sx*Sy){
+      if (rank==ROOT) 
+	fprintf(stderr,"%s: Needs at least %d processors.\n", argv[0], Sx*Sy);
+      MPI_Finalize();
+      return 1;
     }
 
-    // Build a 3x3 grid of subgrids
+    // Build a 4x3 grid of subgrids
     /* 
-     +-----+-----+-----+
-     |  0  |  1  |  2  |
-     |(0,0)|(0,1)|(0,2)|
-     +-----+-----+-----+
-     |  3  |  4  |  5  |
-     |(1,0)|(1,1)|(1,2)|
-     +-----+-----+-----+
-     |  6  |  7  |  8  |
-     |(2,0)|(2,1)|(2,2)|
-     +-----+-----+-----+
+     +-----+-----+-----+-----+
+     |  0  |  1  |  2  |  3  |
+     |(0,0)|(0,1)|(0,2)|(0,3)|
+     +-----+-----+-----+-----+
+     |  4  |  5  |  6  |  7  |
+     |(1,0)|(1,1)|(1,2)|(1,3}|
+     +-----+-----+-----+-----+
+     |  8  |  9  |  10 |  11 |
+     |(2,0)|(2,1)|(2,2)|(2,3)|
+     +-----+-----+-----+-----+
      */
 
     MPI_Comm Comm2d;
@@ -62,8 +65,9 @@ int main(int argc, char **argv) {
     int reorder;
      
     // Setup and build cartesian grid
-    ndim=2; dim[0]=3; dim[1]=3; period[0]=false; period[1]=false; reorder=true;
+    ndim=2; dim[0]=Sy; dim[1]=Sx; period[0]=false; period[1]=false; reorder=true;
     MPI_Cart_create(MPI_COMM_WORLD,ndim,dim,period,reorder,&Comm2d);
+    MPI_Comm_rank(Comm2d, &rank);
     
     // Every processor prints it rank and coordinates
     int coord[2]; 
@@ -78,38 +82,38 @@ int main(int argc, char **argv) {
     MPI_Barrier(Comm2d);
 
     // prints its neighbours
-    if (rank==4) {
+    if (rank==3) {
       printf("P:%2d has neighbours (u,d,l,r): %2d %2d %2d %2d\n",
 	     rank,nbrs[UP],nbrs[DOWN],nbrs[LEFT],nbrs[RIGHT]);
     }
 
     /* array sizes */
-    const int bigsize =9;
-    const int subsize =3;
+    const int NX =12;
+    const int NY =9;
+    const int nx =NX/Sx;
+    const int ny =NY/Sy;
 
     // build a MPI data type for a subarray in Root processor
-    MPI_Datatype mysubarray;
-    MPI_Datatype subarrtype;
-    int bigsizes[2]  = {bigsize,bigsize};
-    int subsizes[2]  = {subsize,subsize};
+    MPI_Datatype global, myGlobal;
+    int bigsizes[2]  = {NY,NX};
+    int subsizes[2]  = {ny,nx};
     int starts[2] = {0,0};
-    MPI_Type_create_subarray(2, bigsizes, subsizes, starts, MPI_ORDER_C, MPI_INT, &mysubarray);
-    //MPI_Type_commit(&mysubarray); // now we can use this MPI costum data type
-    MPI_Type_create_resized(mysubarray, 0, bigsize/subsize*sizeof(int), &subarrtype);
-    MPI_Type_commit(&subarrtype);
+    MPI_Type_create_subarray(2, bigsizes, subsizes, starts, MPI_ORDER_C, MPI_INT, &global);
+    MPI_Type_create_resized(global, 0, nx*sizeof(int), &myGlobal); // resize extend
+    MPI_Type_commit(&myGlobal);
     
     // build a MPI data type for a subarray in workers
-    MPI_Datatype mysubarray2;
-    int bigsizes2[2]  = {subsize+2*R,subsize+2*R};
-    int subsizes2[2]  = {subsize,subsize};
+    MPI_Datatype myLocal;
+    int bigsizes2[2]  = {R+ny+R,R+nx+R};
+    int subsizes2[2]  = {ny,nx};
     int starts2[2] = {R,R};
-    MPI_Type_create_subarray(2, bigsizes2, subsizes2, starts2, MPI_ORDER_C, MPI_INT, &mysubarray2);
-    MPI_Type_commit(&mysubarray2); // now we can use this MPI costum data type
+    MPI_Type_create_subarray(2, bigsizes2, subsizes2, starts2, MPI_ORDER_C, MPI_INT, &myLocal);
+    MPI_Type_commit(&myLocal); // now we can use this MPI costum data type
 
     // halo data types
     MPI_Datatype xSlice, ySlice;
-    MPI_Type_vector(subsize, 1,     1      , MPI_INT, &xSlice);
-    MPI_Type_vector(subsize, 1, subsize+2*R, MPI_INT, &ySlice);
+    MPI_Type_vector(nx, 1,   1   , MPI_INT, &xSlice);
+    MPI_Type_vector(ny, 1, nx+2*R, MPI_INT, &ySlice);
     MPI_Type_commit(&xSlice);
     MPI_Type_commit(&ySlice);
 
@@ -117,81 +121,85 @@ int main(int argc, char **argv) {
     int i, j;
     int *bigarray; // to be allocated only in root
     if (rank==ROOT) {
-      bigarray = (int*)malloc(bigsize*bigsize*sizeof(int));
-      for (i=0; i<bigsize; i++) {
-	for (j=0; j<bigsize; j++) {
-	  bigarray[i*bigsize+j] = i*bigsize+j;
+      bigarray = (int*)malloc(NX*NY*sizeof(int));
+      for (i=0; i<NY; i++) {
+	for (j=0; j<NX; j++) {
+	  bigarray[i*NX+j] = i*NX+j;
 	}
       }
       // print the big array
-      print(bigarray, bigsize);
+      print(bigarray, NX, NY);
     }
 
     // Allocte sub-array in every np
     int *subarray; 
-    subarray = (int*)malloc(bigsize*bigsize*sizeof(int));
-    for (i=0; i<subsize+2*R; i++) {
-      for (j=0; j<subsize+2*R; j++) {
-	subarray[i*(subsize+2*R)+j] = 0;
+    subarray = (int*)malloc((R+nx+R)*(R+ny+R)*sizeof(int));
+    for (i=0; i<ny+2*R; i++) {
+      for (j=0; j<nx+2*R; j++) {
+	subarray[i*(nx+2*R)+j] = 0;
       }
     }
     
     // build sendcounts and displacements in root processor
-    int sendcounts[subsize*subsize];
-    int displs[subsize*subsize];
+    int sendcounts[size];
+    int displs[size];
     if (rank==ROOT) {
-        for (i=0; i<subsize*subsize; i++) sendcounts[i] = 1;
-        int disp = 0; printf("\n");
-        for (i=0; i<subsize; i++) {
-            for (j=0; j<subsize; j++) {
-                displs[i*subsize+j] = disp;
-		printf("%d ",disp);
-                disp += 1;
+        for (i=0; i<size; i++) sendcounts[i]=1;
+        int disp = 0; // displacement counter
+        for (i=0; i<ny+1; i++) {
+            for (j=0; j<Sx; j++) {
+                displs[i*Sx+j]=disp;  disp+=1; // x-displacements
             }
-            disp += ((bigsize/subsize)-1)*subsize;
-        } printf("\n");
-    } 
-
-    // scatter 3x3 pieces of the big data array 
-    MPI_Scatterv(bigarray, sendcounts, displs, subarrtype, 
-		 subarray, 1, mysubarray2, ROOT, Comm2d);
+            disp += Sx*(ny-1); // y-displacements
+        } 
+	printf("\n"); 
+	for (i=0; i<size; i++) printf("%d ",displs[i]); 
+	printf("end \n");
+    }
+    
+    // scatter pieces of the big data array 
+    MPI_Scatterv(bigarray, sendcounts, displs, myGlobal, 
+		 subarray, 1, myLocal, ROOT, Comm2d);
     
     // Exchange x - slices with top and bottom neighbors 
-    MPI_Sendrecv(&(subarray[  subsize  *(subsize+2*R)+1]), 1, xSlice, nbrs[UP]  , 1, 
-		 &(subarray[     0     *(subsize+2*R)+1]), 1, xSlice, nbrs[DOWN], 1, 
+    MPI_Sendrecv(&(subarray[  ny  *(nx+2*R)+1]), 1, xSlice, nbrs[UP]  , 1, 
+		 &(subarray[  0   *(nx+2*R)+1]), 1, xSlice, nbrs[DOWN], 1, 
 		 Comm2d, MPI_STATUS_IGNORE);
-    MPI_Sendrecv(&(subarray[     1     *(subsize+2*R)+1]), 1, xSlice, nbrs[DOWN], 2, 
-		 &(subarray[(subsize+1)*(subsize+2*R)+1]), 1, xSlice, nbrs[UP]  , 2, 
+    MPI_Sendrecv(&(subarray[  1   *(nx+2*R)+1]), 1, xSlice, nbrs[DOWN], 2, 
+		 &(subarray[(ny+1)*(nx+2*R)+1]), 1, xSlice, nbrs[UP]  , 2, 
 		 Comm2d, MPI_STATUS_IGNORE);
     // Exchange y - slices with left and right neighbors 
-    MPI_Sendrecv(&(subarray[1*(subsize+2*R)+  subsize  ]), 1, ySlice, nbrs[RIGHT],3, 
-		 &(subarray[1*(subsize+2*R)+     0     ]), 1, ySlice, nbrs[LEFT] ,3, 
+    MPI_Sendrecv(&(subarray[1*(nx+2*R)+  nx  ]), 1, ySlice, nbrs[RIGHT],3, 
+		 &(subarray[1*(nx+2*R)+   0  ]), 1, ySlice, nbrs[LEFT] ,3, 
 		 Comm2d, MPI_STATUS_IGNORE);
-    MPI_Sendrecv(&(subarray[1*(subsize+2*R)+     1     ]), 1, ySlice, nbrs[LEFT] ,4, 
-    		 &(subarray[1*(subsize+2*R)+(subsize+1)]), 1, ySlice, nbrs[RIGHT],4, 
+    MPI_Sendrecv(&(subarray[1*(nx+2*R)+   1  ]), 1, ySlice, nbrs[LEFT] ,4, 
+    		 &(subarray[1*(nx+2*R)+(nx+1)]), 1, ySlice, nbrs[RIGHT],4, 
 		 Comm2d, MPI_STATUS_IGNORE);
-
+        
     // selected reciver processor prints the subarray
-    if (rank==4) print(subarray, subsize+2*R);
+    if (rank==3) print(subarray, nx+2*R, ny+2*R);
     MPI_Barrier(Comm2d);
-
-    // gather all 3x3 pieces into the big data array
-    MPI_Gatherv(subarray, 1, mysubarray2, 
-    		bigarray, sendcounts, displs, subarrtype, ROOT, Comm2d);
+    
+    // gather all pieces into the big data array
+    MPI_Gatherv(subarray, 1, myLocal, 
+    		bigarray, sendcounts, displs, myGlobal, ROOT, Comm2d);
     
     // print the bigarray and free array in root
-    if (rank==ROOT) {
-      print(bigarray, bigsize);
-      MPI_Type_free(&mysubarray);
-      free(bigarray);
-    }
-
+    if (rank==ROOT) print(bigarray, NX, NY);
+    
+    // MPI types
+    MPI_Type_free(&xSlice);
+    MPI_Type_free(&ySlice);
+    MPI_Type_free(&myLocal);
+    MPI_Type_free(&myGlobal);
+    
     // free arrays in workers
-    MPI_Type_free(&mysubarray2);
+    if (rank==ROOT) free(bigarray);
     free(subarray);
 
     // finalize MPI
     MPI_Finalize();
+
     return 0;
 }
 

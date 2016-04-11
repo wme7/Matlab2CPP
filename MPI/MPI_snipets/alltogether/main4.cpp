@@ -88,23 +88,21 @@ int main(int argc, char **argv) {
     const int subsize =3;
 
     // build a MPI data type for a subarray in Root processor
-    MPI_Datatype mysubarray;
-    MPI_Datatype subarrtype;
+    MPI_Datatype global, myGlobal;
     int bigsizes[2]  = {bigsize,bigsize};
     int subsizes[2]  = {subsize,subsize};
     int starts[2] = {0,0};
-    MPI_Type_create_subarray(2, bigsizes, subsizes, starts, MPI_ORDER_C, MPI_INT, &mysubarray);
-    //MPI_Type_commit(&mysubarray); // now we can use this MPI costum data type
-    MPI_Type_create_resized(mysubarray, 0, bigsize/subsize*sizeof(int), &subarrtype);
-    MPI_Type_commit(&subarrtype);
+    MPI_Type_create_subarray(2, bigsizes, subsizes, starts, MPI_ORDER_C, MPI_INT, &global);
+    MPI_Type_create_resized(global, 0, bigsize/subsize*sizeof(int), &myGlobal);
+    MPI_Type_commit(&myGlobal);
     
     // build a MPI data type for a subarray in workers
-    MPI_Datatype mysubarray2;
+    MPI_Datatype myLocal;
     int bigsizes2[2]  = {subsize+2*R,subsize+2*R};
     int subsizes2[2]  = {subsize,subsize};
     int starts2[2] = {R,R};
-    MPI_Type_create_subarray(2, bigsizes2, subsizes2, starts2, MPI_ORDER_C, MPI_INT, &mysubarray2);
-    MPI_Type_commit(&mysubarray2); // now we can use this MPI costum data type
+    MPI_Type_create_subarray(2, bigsizes2, subsizes2, starts2, MPI_ORDER_C, MPI_INT, &myLocal);
+    MPI_Type_commit(&myLocal); // now we can use this MPI costum data type
 
     // halo data types
     MPI_Datatype xSlice, ySlice;
@@ -153,8 +151,8 @@ int main(int argc, char **argv) {
     } 
 
     // scatter 3x3 pieces of the big data array 
-    MPI_Scatterv(bigarray, sendcounts, displs, subarrtype, 
-		 subarray, 1, mysubarray2, ROOT, Comm2d);
+    MPI_Scatterv(bigarray, sendcounts, displs, myGlobal, 
+		 subarray, 1, myLocal, ROOT, Comm2d);
 
     // add +1 to every data point 
     /*
@@ -184,22 +182,26 @@ int main(int argc, char **argv) {
     MPI_Barrier(Comm2d);
 
     // gather all 3x3 pieces into the big data array
-    MPI_Gatherv(subarray, 1, mysubarray2, 
-    		bigarray, sendcounts, displs, subarrtype, ROOT, Comm2d);
+    MPI_Gatherv(subarray, 1, myLocal, 
+    		bigarray, sendcounts, displs, myGlobal, ROOT, Comm2d);
     
     // print the bigarray and free array in root
-    if (rank==ROOT) {
-      print(bigarray, bigsize);
-      MPI_Type_free(&mysubarray);
-      free(bigarray);
-    }
+    if (rank==ROOT) print(bigarray, bigsize);
+
+    // MPI types
+    MPI_Type_free(&xSlice);
+    MPI_Type_free(&ySlice);
+    MPI_Type_free(&global);
+    MPI_Type_free(&myLocal);
+    MPI_Type_free(&myGlobal);
 
     // free arrays in workers
-    MPI_Type_free(&mysubarray2);
+    if (rank==ROOT) free(bigarray);
     free(subarray);
 
     // finalize MPI
     MPI_Finalize();
+
     return 0;
 }
 
