@@ -12,15 +12,15 @@
 #define R 1 // for the time been this is a fixed param.
 
 // domain decompostion
-#define Sx 1 // size in x
-#define Sy 4 // size in y
+#define Sx 2 // size in x
+#define Sy 2 // size in y
 
 // root processor
 #define ROOT 0
 
 
 void print(int *data, int nx, int ny) {    
-  printf("-- output --\n");
+  printf("-- Global Memory --\n");
   for (int i=0; i<ny; i++) {
     for (int j=0; j<nx; j++) {
      printf("%3d ", data[i*nx+j]);
@@ -102,19 +102,22 @@ int main(int argc, char **argv) {
     MPI_Barrier(Comm2d);
 
     // prints its neighbours
-    if (rank==3) {
-      printf("P:%2d has neighbours (u,d,l,r): %2d %2d %2d %2d\n",
+    printf("P:%2d has neighbours (u,d,l,r): %2d %2d %2d %2d\n",
 	     rank,nbrs[UP],nbrs[DOWN],nbrs[LEFT],nbrs[RIGHT]);
-    }
 
     /* array sizes */
-    const int NX =20;
-    const int NY =20;
+    const int NX =8;
+    const int NY =8;
     const int nx =NX/Sx;
     const int ny =NY/Sy;
     
     // subsizes verification
-
+    if (NX%Sx!=0 || NY%Sy!=0) {
+      if (rank==ROOT) 
+	fprintf(stderr,"%s: Subdomain sizes not an integer value.\n", argv[0]);
+      MPI_Finalize();
+      return 1;
+    }
 
     // build a MPI data type for a subarray in Root processor
     MPI_Datatype global, myGlobal;
@@ -175,9 +178,6 @@ int main(int argc, char **argv) {
             }
             disp += Sx*(ny-1); // y-displacements
         } 
-	printf("\n"); 
-	for (i=0; i<size; i++) printf("%d ",displs[i]); 
-	printf("end \n");
     }
     
     // scatter pieces of the big data array 
@@ -199,10 +199,21 @@ int main(int argc, char **argv) {
     		 &(subarray[1*(nx+2*R)+(nx+1)]), 1, ySlice, nbrs[RIGHT],4, 
 		 Comm2d, MPI_STATUS_IGNORE);
         
-    // selected reciver processor prints the subarray
-    if (rank==3) print(subarray, nx+2*R, ny+2*R);
-    MPI_Barrier(Comm2d);
-    
+    // every processor prints the subarray
+    for (int p=0; p<size; p++) {
+        if (rank == p) {
+            printf("Local process on rank %d is:\n", rank);
+            for (i=0; i<ny+2*R; i++) {
+                putchar('|');
+                for (j=0; j<nx+2*R; j++) {
+		  printf("%3d ", subarray[i*(nx+2*R)+j]);
+                }
+                printf("|\n");
+            }
+        }
+        MPI_Barrier(Comm2d);
+    }
+
     // gather all pieces into the big data array
     MPI_Gatherv(subarray, 1, myLocal, 
     		bigarray, sendcounts, displs, myGlobal, ROOT, Comm2d);
