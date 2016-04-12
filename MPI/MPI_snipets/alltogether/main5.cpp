@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
     if (rank==ROOT) {
         for (i=0; i<size; i++) sendcounts[i]=1;
         int disp = 0; // displacement counter
-        for (i=0; i<ny+1; i++) {
+        for (i=0; i<Sy; i++) {
             for (j=0; j<Sx; j++) {
                 displs[i*Sx+j]=disp;  disp+=1; // x-displacements
             }

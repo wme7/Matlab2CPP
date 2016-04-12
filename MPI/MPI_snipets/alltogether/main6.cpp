@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
      |(3,0)|
      +-----+
      */
-    // A 4x1 grid of subgrid
+    // A 2x2 grid of subgrid
     /* 
      +-----+-----+
      |  0  |  1  |
@@ -80,13 +80,12 @@ int main(int argc, char **argv) {
      */
 
     MPI_Comm Comm2d;
-    int ndim;
-    int dim[2];
-    int period[2]; // for periodic conditions
-    int reorder;
+    int ndim = 2;
+    int dim[2] = {Sy,Sx};
+    int period[2] = {false,false}; // for periodic boundary conditions
+    int reorder = {true};
      
     // Setup and build cartesian grid
-    ndim=2; dim[0]=Sy; dim[1]=Sx; period[0]=false; period[1]=false; reorder=true;
     MPI_Cart_create(MPI_COMM_WORLD,ndim,dim,period,reorder,&Comm2d);
     MPI_Comm_rank(Comm2d, &rank);
     
@@ -109,10 +108,13 @@ int main(int argc, char **argv) {
     }
 
     /* array sizes */
-    const int NX =10;
+    const int NX =20;
     const int NY =20;
     const int nx =NX/Sx;
     const int ny =NY/Sy;
+    
+    // subsizes verification
+
 
     // build a MPI data type for a subarray in Root processor
     MPI_Datatype global, myGlobal;
@@ -167,7 +169,7 @@ int main(int argc, char **argv) {
     if (rank==ROOT) {
         for (i=0; i<size; i++) sendcounts[i]=1;
         int disp = 0; // displacement counter
-        for (i=0; i<ny+1; i++) {
+        for (i=0; i<Sy; i++) {
             for (j=0; j<Sx; j++) {
                 displs[i*Sx+j]=disp;  disp+=1; // x-displacements
             }
@@ -181,7 +183,7 @@ int main(int argc, char **argv) {
     // scatter pieces of the big data array 
     MPI_Scatterv(bigarray, sendcounts, displs, myGlobal, 
 		 subarray, 1, myLocal, ROOT, Comm2d);
-    /*
+    
     // Exchange x - slices with top and bottom neighbors 
     MPI_Sendrecv(&(subarray[  ny  *(nx+2*R)+1]), 1, xSlice, nbrs[UP]  , 1, 
 		 &(subarray[  0   *(nx+2*R)+1]), 1, xSlice, nbrs[DOWN], 1, 
@@ -195,7 +197,7 @@ int main(int argc, char **argv) {
 		 Comm2d, MPI_STATUS_IGNORE);
     MPI_Sendrecv(&(subarray[1*(nx+2*R)+   1  ]), 1, ySlice, nbrs[LEFT] ,4, 
     		 &(subarray[1*(nx+2*R)+(nx+1)]), 1, ySlice, nbrs[RIGHT],4, 
-		 Comm2d, MPI_STATUS_IGNORE);*/
+		 Comm2d, MPI_STATUS_IGNORE);
         
     // selected reciver processor prints the subarray
     if (rank==3) print(subarray, nx+2*R, ny+2*R);
