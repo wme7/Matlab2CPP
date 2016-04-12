@@ -5,7 +5,7 @@
 #include <mpi.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 20 // number of cells in the x-direction
+#define NX 16 // number of cells in the x-direction
 #define NY 20 // number of cells in the y-direction
 #define L 10.0 // domain length
 #define W 10.0 // domain width
@@ -20,6 +20,41 @@
 #define R 1 // radius or width of the hallo region (fixed parameter)
 #define ROOT 0 // define root process
 #define PI 3.1415926535897932f // PI number
+
+// Testing : 
+    // A grid of 1x4 subgrids
+    /* 
+     +-----+-----+-----+-----+
+     |  0  |  1  |  2  |  3  |
+     |(0,0)|(0,1)|(0,2)|(0,3)|
+     +-----+-----+-----+-----+
+     */
+    // A grid of 4x1 subgrids
+    /* 
+     +-----+
+     |  0  |
+     |(0,0)|
+     +-----+
+     |  1  |
+     |(1,0)|
+     +-----+
+     |  2  |
+     |(2,0)|
+     +-----+
+     |  3  |
+     |(3,0)|
+     +-----+
+     */
+    // A grid of 2x2 subgrids
+    /* 
+     +-----+-----+
+     |  0  |  1  |
+     |(0,0)|(0,1)|
+     +-----+-----+
+     |  2  |  3  |
+     |(1,0)|(1,1)|
+     +-----+-----+
+     */
 
 /* MPI Grid size */
 #define SX 2 // size in x
@@ -58,12 +93,13 @@ typedef struct {
 
 /* Declare functions */
 dmn Manage_Domain(int rank, int npcs, int *coord, int *ngbr);
-void Manage_Comms(dmn domain, real **h_u);
-void Manage_Memory(int phase, dmn domain, real **g_u, real **h_u, real **h_un);
+void Manage_Comms(dmn domain, MPI_Comm Comm, MPI_Datatype xSlice, MPI_Datatype ySlice, real *t_u);
+void Manage_Memory(int phase, dmn domain, real **h_u, real **t_u, real **t_un);
 void Manage_DataTypes(int phase, dmn domain, 
 		      MPI_Datatype *xSlice, MPI_Datatype *ySlice, 
 		      MPI_Datatype *myGlobal, MPI_Datatype *myLocal);
-void Call_Laplace(dmn domain, real **h_u, real **h_un);
+void Call_Laplace(dmn domain, real **t_u, real **t_un);
 void Call_IC(int IC, real *h_u);
+void Print(real *h_u, int nx, int ny);
 void Save_Results(real *h_u);
 

@@ -71,8 +71,15 @@ int main ( int argc, char *argv[] ) {
   // Root mode: Build Initial Condition 
   if (domain.rank==ROOT) Call_IC(2,h_u);
 
+  // Build MPI data types
+  MPI_Datatype myGlobal;
+  MPI_Datatype myLocal;
+  MPI_Datatype xSlice;
+  MPI_Datatype ySlice;
+  //Manage_DataTypes(0,domain,&xSlice,&ySlice,&myLocal,&myGlobal);
+
   // Build a MPI data type for a subarray in Root processor
-  MPI_Datatype global, myGlobal;
+  MPI_Datatype global;
   int nx = domain.nx;
   int ny = domain.ny;
   int bigsizes[2] = {NY,NX};
@@ -83,7 +90,6 @@ int main ( int argc, char *argv[] ) {
   MPI_Type_commit(&myGlobal);
     
   // Build a MPI data type for a subarray in workers
-  MPI_Datatype myLocal;
   int bigsizes2[2] = {R+ny+R,R+nx+R};
   int subsizes2[2] = {ny,nx};
   int starts2[2] = {R,R};
@@ -91,20 +97,10 @@ int main ( int argc, char *argv[] ) {
   MPI_Type_commit(&myLocal); // now we can use this MPI costum data type
 
   // Halo data types
-  MPI_Datatype xSlice, ySlice;
   MPI_Type_vector(nx, 1,    1  , MPI_CUSTOM_REAL, &xSlice);
   MPI_Type_vector(ny, 1, R+nx+R, MPI_CUSTOM_REAL, &ySlice);
   MPI_Type_commit(&xSlice);
   MPI_Type_commit(&ySlice);
-
-  /*
-    // Build MPI data types
-  MPI_Datatype myGlobal;
-  MPI_Datatype myLocal;
-  MPI_Datatype xSlice;
-  MPI_Datatype ySlice;
-  Manage_DataTypes(0,domain,&xSlice,&ySlice,&myLocal,&myGlobal);
-   */
   
   // build sendcounts and displacements in root processor
   int sendcounts[size];
@@ -124,20 +120,12 @@ int main ( int argc, char *argv[] ) {
   MPI_Scatterv(h_u, sendcounts, displs, myGlobal, t_u, 1, myLocal, ROOT, Comm2d);
   
   // Exchage Halo regions
-  // Exchange x - slices with top and bottom neighbors 
-    MPI_Sendrecv(&(t_u[  ny  *(nx+2*R)+1]), 1, xSlice, nbrs[UP]  , 1, 
-		 &(t_u[  0   *(nx+2*R)+1]), 1, xSlice, nbrs[DOWN], 1, 
-		 Comm2d, MPI_STATUS_IGNORE);
-    MPI_Sendrecv(&(t_u[  1   *(nx+2*R)+1]), 1, xSlice, nbrs[DOWN], 2, 
-		 &(t_u[(ny+1)*(nx+2*R)+1]), 1, xSlice, nbrs[UP]  , 2, 
-		 Comm2d, MPI_STATUS_IGNORE);
-    // Exchange y - slices with left and right neighbors 
-    MPI_Sendrecv(&(t_u[1*(nx+2*R)+  nx  ]), 1, ySlice, nbrs[RIGHT],3, 
-		 &(t_u[1*(nx+2*R)+   0  ]), 1, ySlice, nbrs[LEFT] ,3, 
-		 Comm2d, MPI_STATUS_IGNORE);
-    MPI_Sendrecv(&(t_u[1*(nx+2*R)+   1  ]), 1, ySlice, nbrs[LEFT] ,4, 
-    		 &(t_u[1*(nx+2*R)+(nx+1)]), 1, ySlice, nbrs[RIGHT],4, 
-		 Comm2d, MPI_STATUS_IGNORE);
+  Manage_Comms(domain,Comm2d,xSlice,ySlice,t_u); 
+  if (rank==0) Print(t_u,nx+2*R,ny+2*R); MPI_Barrier(Comm2d);
+  if (rank==1) Print(t_u,nx+2*R,ny+2*R); MPI_Barrier(Comm2d);
+  if (rank==2) Print(t_u,nx+2*R,ny+2*R); MPI_Barrier(Comm2d);
+  if (rank==3) Print(t_u,nx+2*R,ny+2*R); MPI_Barrier(Comm2d);
+  if (rank==0) Print(h_u,NX,NY);
   
   // ROOT mode: Record the starting time.
   if (rank==ROOT) wtime=MPI_Wtime();
@@ -148,11 +136,10 @@ int main ( int argc, char *argv[] ) {
     if (rank==ROOT && step%10000==0) printf("  Step %d of %d\n",step,(int)NO_STEPS);
     
     // Exchange Boundaries and compute stencil
-    //Call_Laplace(domain,&t_u,&t_un); Manage_Comms(domain,&t_un); // 1st iter
-    //Call_Laplace(domain,&t_un,&t_u); Manage_Comms(domain,&t_u ); // 2nd iter
+    //Call_Laplace(domain,&t_u,&t_un); Manage_Comms(domain,Comm2d,xSlice,ySlice,t_un); // 1st iter
+    //Call_Laplace(domain,&t_un,&t_u); Manage_Comms(domain,Comm2d,xSlice,ySlice,t_u ); // 2nd iter
   }
-  MPI_Barrier(MPI_COMM_WORLD); 
-
+  
   // ROOT mode: Record the final time.
   if (rank==ROOT) {
     wtime = MPI_Wtime()-wtime; printf ("\n Wall clock elapsed = %f seconds\n\n", wtime );
@@ -166,7 +153,6 @@ int main ( int argc, char *argv[] ) {
 
   // Free MPI types
   //Manage_DataTypes(1,domain,&xSlice,&ySlice,&myLocal,&myGlobal);
-    
   MPI_Type_free(&xSlice);
   MPI_Type_free(&ySlice);
   MPI_Type_free(&myLocal);
