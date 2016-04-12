@@ -1,4 +1,4 @@
-all: SendReceive Scatter ScatterGather withBoundaries Generalized
+all: SendReceive Scatter ScatterGather withBoundaries Generalized Debugged
 
 SendReceive: main1.cpp
 	mpic++ main1.cpp -o test1.run
@@ -14,6 +14,9 @@ withBoundaries: main4.cpp
 
 Generalized: main5.cpp
 	mpic++ main5.cpp -o test5.run
+
+Debugged: main6.cpp
+	mpic++ main6.cpp -o test6.run
 
 clean:
 	rm *.run
