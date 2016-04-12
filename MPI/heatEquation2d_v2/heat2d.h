@@ -5,8 +5,8 @@
 #include <mpi.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 60 // number of cells in the x-direction
-#define NY 60 // number of cells in the y-direction
+#define NX 20 // number of cells in the x-direction
+#define NY 20 // number of cells in the y-direction
 #define L 10.0 // domain length
 #define W 10.0 // domain width
 #define C 1.0 // c, material conductivity. Uniform assumption.
@@ -17,19 +17,19 @@
 #define KX (C*DT/(DX*DX)) // numerical conductivity
 #define KY (C*DT/(DY*DY)) // numerical conductivity
 #define NO_STEPS (TEND/DT) // No. of time steps
-#define R 1 // radius or width of the hallo region
+#define R 1 // radius or width of the hallo region (fixed parameter)
 #define ROOT 0 // define root process
 #define PI 3.1415926535897932f // PI number
+
+/* MPI Grid size */
+#define SX 2 // size in x
+#define SY 2 // size in y
 
 /* Neighbours convention */
 #define UP    0
 #define DOWN  1
 #define LEFT  2
 #define RIGHT 3
-
-/* debuging */
-#define STATUS_OK   0
-#define STATUS_ERR -1
 
 /* use floats of dobles */
 #define USE_FLOAT true // set false to use double
@@ -45,17 +45,25 @@
 typedef struct {
   int rank; // global rank
   int npcs; // total number of procs
-  int nx; // local number of cells in the x-direction 
-  int ny; // local number of cells in the y-direction
-  int size; // local domain size
+  int size; // domain size (local)
+  int nx; // number of cells in the x-direction (local)
+  int ny; // number of cells in the y-direction (local)
+  int rx; // x-rank coordinate
+  int ry; // y-rank coordinate
+  int u; // upper neigbour rank
+  int d; // lower neigbour rank
+  int l; // left neigbour rank
+  int r; // right neigbour rank
 } dmn;
 
 /* Declare functions */
-dmn Manage_Domain(int rank, int npcs, int *dim);
-void Manage_Comms(dmn domain, double **h_u);
-void Manage_Memory(int phase, dmn domain, double **g_u, double **h_u, double **h_un);
-void Call_Laplace(dmn domain, double **h_u, double **h_un);
-void Print_SubDomain(dmn domain, double *h_u);
-void Call_IC(int IC, double *h_u);
-void Save_Results(double *h_u);
+dmn Manage_Domain(int rank, int npcs, int *coord, int *ngbr);
+void Manage_Comms(dmn domain, real **h_u);
+void Manage_Memory(int phase, dmn domain, real **g_u, real **h_u, real **h_un);
+void Manage_DataTypes(int phase, dmn domain, 
+		      MPI_Datatype *xSlice, MPI_Datatype *ySlice, 
+		      MPI_Datatype *myGlobal, MPI_Datatype *myLocal);
+void Call_Laplace(dmn domain, real **h_u, real **h_un);
+void Call_IC(int IC, real *h_u);
+void Save_Results(real *h_u);
 

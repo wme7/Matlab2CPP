@@ -1,29 +1,21 @@
 
 #include "heat2d.h"
 
-dmn Manage_Domain(int rank, int npcs, int *dim){
+dmn Manage_Domain(int rank, int npcs, int *coord, int *ngbr){
   // allocate sub-domain for a one-dimensional domain decomposition in the Y-direction
   dmn domain;
   domain.rank = rank;
   domain.npcs = npcs;
-  domain.ny = NY/dim[0];
-  domain.nx = NX/dim[1];
+  domain.ny = NY/SY;
+  domain.nx = NX/SX;
   domain.size = domain.nx*domain.ny;
+  domain.rx = coord[0];
+  domain.ry = coord[1];
+  domain.u = ngbr[UP];
+  domain.d = ngbr[DOWN];
+  domain.l = ngbr[LEFT];
+  domain.r = ngbr[RIGHT];
   
-  // The number of MPI processes must fill the topology size
-  if ( npcs != dim[1]*dim[0] ) {
-    printf("Sorry, the number of MPI processes does not mach the domain decompostion: d% x d%.\n",
-	   dim[1],dim[0]);
-    MPI_Abort(MPI_COMM_WORLD,1);
-  }
-
-  // Make sure that all sub domain dimensions match the size of original data
-  if ( NX%dim[1] != 0 || NY%dim[0] != 0 ) {
-    printf("Sorry, the domain size should be (%d*%d) x (%d*%d) = NX x NY cells.\n",
-	   domain.nx,dim[1],domain.ny,dim[0]);
-    MPI_Abort(MPI_COMM_WORLD,1);
-  }
-
   // Have process 0 print out some information.
   if (rank==ROOT) {
     printf ("HEAT_MPI:\n\n" );
@@ -38,26 +30,63 @@ dmn Manage_Domain(int rank, int npcs, int *dim){
   return domain;
 }
 
-void Manage_Memory(int phase, dmn domain, double **h_u, double **d_u, double **d_un){
+void Manage_DataTypes(int phase, dmn domain, 
+		      MPI_Datatype *xSlice, MPI_Datatype *ySlice, 
+		      MPI_Datatype *myGlobal, MPI_Datatype *myLocal){
+  MPI_Datatype global;
+  int nx = domain.nx;
+  int ny = domain.ny;
+
+  if (phase==0) {
+    // Build a MPI data type for a subarray in Root processor
+    int bigsizes[2] = {NY,NX};
+    int subsizes[2] = {ny,nx};
+    int starts[2] = {0,0};
+    MPI_Type_create_subarray(2, bigsizes, subsizes, starts, MPI_ORDER_C, MPI_CUSTOM_REAL, &global);
+    MPI_Type_create_resized(global, 0, nx*sizeof(real), myGlobal); // extend the type 
+    MPI_Type_commit(myGlobal);
+    
+    // Build a MPI data type for a subarray in workers
+    int bigsizes2[2] = {R+ny+R,R+nx+R};
+    int subsizes2[2] = {ny,nx};
+    int starts2[2] = {R,R};
+    MPI_Type_create_subarray(2, bigsizes2, subsizes2, starts2, MPI_ORDER_C, MPI_CUSTOM_REAL, myLocal);
+    MPI_Type_commit(myLocal); // now we can use this MPI costum data type
+
+    // Halo data types
+    MPI_Type_vector(nx, 1,    1  , MPI_CUSTOM_REAL, xSlice);
+    MPI_Type_vector(ny, 1, R+nx+R, MPI_CUSTOM_REAL, ySlice);
+    MPI_Type_commit(xSlice);
+    MPI_Type_commit(ySlice);
+  }
+  if (phase==1) {
+    MPI_Type_free(xSlice);
+    MPI_Type_free(ySlice);
+    MPI_Type_free(myLocal);
+    MPI_Type_free(myGlobal);
+  }
+}
+
+void Manage_Memory(int phase, dmn domain, real **h_u, real **t_u, real **t_un){
   if (phase==0) {
     // Allocate global domain on ROOT
-    if (domain.rank==ROOT) *h_u=(double*)malloc(NX*NY*sizeof(double)); // only exist in ROOT!
+    if (domain.rank==ROOT) *h_u=(real*)malloc(NX*NY*sizeof(real)); // only exist in ROOT!
     // Allocate local domains on MPI threats with 2 extra slots for halo regions
-    *d_u =(double*)malloc((domain.nx+2*R)*(domain.ny+2*R)*sizeof(double));
-    *d_un=(double*)malloc((domain.nx+2*R)*(domain.ny+2*R)*sizeof(double));
+    *t_u =(real*)malloc((domain.nx+2*R)*(domain.ny+2*R)*sizeof(real));
+    *t_un=(real*)malloc((domain.nx+2*R)*(domain.ny+2*R)*sizeof(real));
   }
   if (phase==1) {
     // Free the domain on host
     if (domain.rank==ROOT) free(*h_u);
-    free(*d_u);
-    free(*d_un);
+    free(*t_u);
+    free(*t_un);
   }
 }
 
 /******************************/
 /* TEMPERATURE INITIALIZATION */
 /******************************/
-void Call_IC(const int IC, double * __restrict u0){
+void Call_IC(const int IC, real * __restrict u0){
   int i, j, o; 
   switch (IC) {
   case 1: {
@@ -108,7 +137,7 @@ void Call_IC(const int IC, double * __restrict u0){
   }
 }
 
-void Save_Results(double *u){
+void Save_Results(real *u){
   // print result to txt file
   FILE *pFile = fopen("result.txt", "w");
   if (pFile != NULL) {
@@ -120,17 +149,6 @@ void Save_Results(double *u){
     fclose(pFile);
   } else {
     printf("Unable to save to file\n");
-  }
-}
-
-void Print_SubDomain(int nx, int ny, double *u){
-  // print result to terminal
-  printf("-- output --\n");
-  for (int j = 0; j < ny+2*R; j++) {
-    for (int i = 0; i < nx+2*0; i++) {      
-      printf("%1.2f ",u[i+nx*j]);
-    }
-    printf("\n");
   }
 }
 
@@ -157,36 +175,29 @@ void Set_NeumannBC(double *u, const int j, const char letter){
 }
 
 void Manage_Comms(dmn domain, double **u) {
-  MPI_Status status; 
-  MPI_Request rqSendUp, rqSendDown, rqRecvUp, rqRecvDown;
-  const int r = domain.rank;
-  const int p = domain.npcs;
-  const int n = domain.nx;
-  const int m = domain.ny;
+  const int nx = domain.nx;
+  const int ny = domain.ny;
   
-// Impose BCs!
+  // Impose BCs!
   if (r== 0 ) Set_DirichletBC(*u,1,'B'); // impose Dirichlet BC u[row  1 ]
   if (r==p-1) Set_DirichletBC(*u,m,'T'); // impose Dirichlet BC u[row M-1]
 
-  // Communicate halo regions
-  if (r <p-1) {
-    MPI_Isend(*u+n*m    ,n,MPI_DOUBLE,r+1,2,MPI_COMM_WORLD,&rqSendDown); // send u[rowM-1] to   rank+1
-    MPI_Irecv(*u+n*(m+R),n,MPI_DOUBLE,r+1,1,MPI_COMM_WORLD,&rqRecvUp  ); // recv u[row M ] from rank+1
-  }
-  if (r > 0 ) {
-    MPI_Isend(*u+n      ,n,MPI_DOUBLE,r-1,1,MPI_COMM_WORLD,&rqSendUp  ); // send u[row 1 ] to   rank-1
-    MPI_Irecv(*u        ,n,MPI_DOUBLE,r-1,2,MPI_COMM_WORLD,&rqRecvDown); // recv u[row 0 ] from rank-1
-  }
+  // Exchage Halo regions
 
-  // Wait for process to complete
-  if(r <p-1) {
-    MPI_Wait(&rqSendDown, &status);
-    MPI_Wait(&rqRecvUp,   &status);
-  }
-  if(r > 0 ) {
-    MPI_Wait(&rqRecvDown, &status);
-    MPI_Wait(&rqSendUp,   &status);
-  }
+  // Exchange x - slices with top and bottom neighbors 
+  MPI_Sendrecv(&(t_u[  ny  *(nx+2*R)+1]), 1, xSlice, nbrs[UP]  , 1, 
+	       &(t_u[  0   *(nx+2*R)+1]), 1, xSlice, nbrs[DOWN], 1, 
+	       Comm2d, MPI_STATUS_IGNORE);
+  MPI_Sendrecv(&(t_u[  1   *(nx+2*R)+1]), 1, xSlice, nbrs[DOWN], 2, 
+	       &(t_u[(ny+1)*(nx+2*R)+1]), 1, xSlice, nbrs[UP]  , 2, 
+	       Comm2d, MPI_STATUS_IGNORE);
+  // Exchange y - slices with left and right neighbors 
+  MPI_Sendrecv(&(t_u[1*(nx+2*R)+  nx  ]), 1, ySlice, nbrs[RIGHT],3, 
+	       &(t_u[1*(nx+2*R)+   0  ]), 1, ySlice, nbrs[LEFT] ,3, 
+	       Comm2d, MPI_STATUS_IGNORE);
+  MPI_Sendrecv(&(t_u[1*(nx+2*R)+   1  ]), 1, ySlice, nbrs[LEFT] ,4, 
+	       &(t_u[1*(nx+2*R)+(nx+1)]), 1, ySlice, nbrs[RIGHT],4, 
+	       Comm2d, MPI_STATUS_IGNORE);
 }
 
 void Laplace2d(const int ny, const double * __restrict__ u, double * __restrict__ un){
