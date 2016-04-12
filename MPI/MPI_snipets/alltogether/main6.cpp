@@ -1,3 +1,8 @@
+/* 
+  Coded by Manuel A. Diaz.
+  NHRI, 2016.04.12. 
+*/ 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
@@ -45,14 +50,14 @@ int main(int argc, char **argv) {
     }
 
     // Testing : 
-    // A 1x4 grid of subgrid
+    // A grid of 1x4 subgrids
     /* 
      +-----+-----+-----+-----+
      |  0  |  1  |  2  |  3  |
      |(0,0)|(0,1)|(0,2)|(0,3)|
      +-----+-----+-----+-----+
      */
-    // A 1x4 grid of subgrid
+    // A grid of 4x1 subgrids
     /* 
      +-----+
      |  0  |
@@ -68,7 +73,7 @@ int main(int argc, char **argv) {
      |(3,0)|
      +-----+
      */
-    // A 2x2 grid of subgrid
+    // A grid of 2x2 subgrids
     /* 
      +-----+-----+
      |  0  |  1  |
