@@ -1,0 +1,24 @@
+digraph "RunJacobi"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="RunJacobi",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="CallJacobiKernel",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Device_8cu.html#a08324d1c9b1ee7193242670ba4b97d88",tooltip="The host wrapper for one Jacobi iteration. "];
+  Node2 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="CheckCudaCall",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Device_8cu.html#a87c5ce86d74764a06a13b73dff013870",tooltip="The host function for checking the result of a CUDA API call. "];
+  Node1 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="CopyDeviceBlock",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Device_8cu.html#aeaebe085afbffaa0d6bcd77fa16ceb97",tooltip="The host wrapper for copying the updated block over the old one, after a Jacobi iteration finishes..."];
+  Node4 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node1 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="TransferAllHalos",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Host_8c.html#ac28696e075d2053b4de5662556c16f3d",tooltip="This performs the exchanging of all necessary halos between 2 neighboring MPI processes. "];
+  Node5 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="CopyDevSideEdgesFromBlock",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Device_8cu.html#a95a52e3c2e58d2d94403a0dce2e29686",tooltip="The host wrapper for copying (packing) the values on the left and right side of the data block to sep..."];
+  Node6 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 -> Node7 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="ExchangeHalos",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$CUDA__Aware__MPI_8c.html#a1dc0674ebcbca5a781885f2204d78251",tooltip="Exchange halo values between 2 direct neighbors This is the main difference between the normal CUDA &amp;..."];
+  Node5 -> Node8 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="CopyDevHalosToBlock",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Device_8cu.html#a3b641f8b5d521a230416b64d8b809324",tooltip="The host wrapper for copying (unpacking) the values from the halo buffers to the left and right side ..."];
+  Node8 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+}
