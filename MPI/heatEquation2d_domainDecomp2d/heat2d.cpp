@@ -25,7 +25,7 @@ dmn Manage_Domain(int rank, int npcs, int *coord, int *ngbr){
 
   // Print welcome message
   printf("  Commence Simulation:");
-  printf("  procs rank %d (ry=%d,rx=%d) out of %d cores"
+  printf("  procs rank %2d (ry=%d,rx=%d) out of %2d cores"
 	 " working with (%d +%d) x (%d +%d) cells\n",
 	 rank,domain.ry,domain.rx,npcs,domain.nx,2*R,domain.ny,2*R);
 

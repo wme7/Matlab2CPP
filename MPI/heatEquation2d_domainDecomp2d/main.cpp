@@ -155,11 +155,7 @@ int main ( int argc, char *argv[] ) {
   if (rank==ROOT) Save_Results(h_u); 
 
   // Free MPI types
-  //Manage_DataTypes(1,domain,&xSlice,&ySlice,&myLocal,&myGlobal);
-  MPI_Type_free(&xSlice);
-  MPI_Type_free(&ySlice);
-  MPI_Type_free(&myLocal);
-  MPI_Type_free(&myGlobal);
+  Manage_DataTypes(1,domain,&xSlice,&ySlice,&myLocal,&myGlobal);
   
   // Free Memory
   Manage_Memory(1,domain,&h_u,&t_u,&t_un); 
