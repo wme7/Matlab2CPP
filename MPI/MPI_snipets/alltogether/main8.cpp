@@ -192,28 +192,28 @@ int main(int argc, char **argv) {
 
     // lengths 
     int n=nx+2*R, m=(nx+2*R)*(ny+2*R);
-    /*
+    
     // Exchange xy - slices with top and bottom neighbors 
     MPI_Sendrecv(&(subarray[ R+ n*R+ m*nz ]), 1, xySlice, nbrs[BOTTOM],1, 
 		 &(subarray[ R+ n*R+ m*0  ]), 1, xySlice, nbrs[TOP]   ,1, 
 		 Comm3d, MPI_STATUS_IGNORE);
     MPI_Sendrecv(&(subarray[ R+ n*R+ m*R  ]), 1, xySlice, nbrs[TOP]   ,2, 
 		 &(subarray[R+n*R+m*(nz+1)]), 1, xySlice, nbrs[BOTTOM],2, 
-		 Comm3d, MPI_STATUS_IGNORE);*/
+		 Comm3d, MPI_STATUS_IGNORE);
     // Exchange yz - slices with left and right neighbors 
     MPI_Sendrecv(&(subarray[ nx+ n*R+ m*R ]), 1, yzSlice, nbrs[EAST],3, 
 		 &(subarray[ 0 + n*R+ m*R ]), 1, yzSlice, nbrs[WEST],3, 
 		 Comm3d, MPI_STATUS_IGNORE);
     MPI_Sendrecv(&(subarray[ R + n*R+ m*R ]), 1, yzSlice, nbrs[WEST],4, 
     		 &(subarray[(nx+1)+n*R+m*R]), 1, yzSlice, nbrs[EAST],4, 
-		 Comm3d, MPI_STATUS_IGNORE);/*
+		 Comm3d, MPI_STATUS_IGNORE);
     // Exchange xz - slices with south and north neighbors 
     MPI_Sendrecv(&(subarray[ R+ n*ny+ m*R ]), 1, xzSlice, nbrs[SOUTH],5, 
 		 &(subarray[ R+ n*0 + m*R ]), 1, xzSlice, nbrs[NORTH],5, 
 		 Comm3d, MPI_STATUS_IGNORE);
     MPI_Sendrecv(&(subarray[ R+ n*R + m*R ]), 1, xzSlice, nbrs[NORTH],6, 
     		 &(subarray[R+n*(ny+1)+m*R]), 1, xzSlice, nbrs[SOUTH],6, 
-		 Comm3d, MPI_STATUS_IGNORE);*/
+		 Comm3d, MPI_STATUS_IGNORE);
         
     // every processor prints the subarray
     for (int p=0; p<size; p++) {
