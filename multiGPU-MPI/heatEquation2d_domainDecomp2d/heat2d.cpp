@@ -25,7 +25,7 @@ dmn Manage_Domain(int rank, int npcs, int *coord, int *ngbr){
 
   // Print welcome message
   printf("  Commence Simulation:");
-  printf("  procs rank %d (ry=%d,rx=%d) out of %d cores"
+  printf("  procs rank %2d (ry=%d,rx=%d) out of %2d cores"
 	 " working with (%d +%d) x (%d +%d) cells\n",
 	 rank,domain.ry,domain.rx,npcs,domain.nx,2*R,domain.ny,2*R);
 
@@ -35,11 +35,11 @@ dmn Manage_Domain(int rank, int npcs, int *coord, int *ngbr){
 void Manage_DataTypes(int phase, dmn domain, 
 		      MPI_Datatype *xSlice, MPI_Datatype *ySlice, 
 		      MPI_Datatype *myGlobal, MPI_Datatype *myLocal){
-  MPI_Datatype global;
-  int nx = domain.nx;
-  int ny = domain.ny;
+  if (phase==0) { /*
+    MPI_Datatype global;
+    int nx = domain.nx;
+    int ny = domain.ny;
 
-  if (phase==0) {
     // Build a MPI data type for a subarray in Root processor
     int bigsizes[2] = {NY,NX};
     int subsizes[2] = {ny,nx};
@@ -59,7 +59,7 @@ void Manage_DataTypes(int phase, dmn domain,
     MPI_Type_vector(nx, 1,    1  , MPI_CUSTOM_REAL, xSlice);
     MPI_Type_vector(ny, 1, R+nx+R, MPI_CUSTOM_REAL, ySlice);
     MPI_Type_commit(xSlice);
-    MPI_Type_commit(ySlice);
+    MPI_Type_commit(ySlice); */
   }
   if (phase==1) {
     MPI_Type_free(xSlice);
@@ -204,28 +204,27 @@ void Set_DirichletBC(dmn domain, real *u, const char letter){
 void Manage_Comms(dmn domain, MPI_Comm Comm2d, MPI_Datatype xSlice, MPI_Datatype ySlice, real *u) {
   const int nx = domain.nx;
   const int ny = domain.ny;
-  const int rx = domain.rx;
-  const int ry = domain.ry;
+  const int n = R+domain.nx+R;
   
   // Impose BCs!
-  if (rx==  0 ) Set_DirichletBC(domain, u,'L'); 
-  if (rx==SX-1) Set_DirichletBC(domain, u,'R'); 
-  if (ry==  0 ) Set_DirichletBC(domain, u,'B'); 
-  if (ry==SY-1) Set_DirichletBC(domain, u,'T');
+  if (domain.rx==  0 ) Set_DirichletBC(domain, u,'L'); 
+  if (domain.rx==SX-1) Set_DirichletBC(domain, u,'R'); 
+  if (domain.ry==  0 ) Set_DirichletBC(domain, u,'B'); 
+  if (domain.ry==SY-1) Set_DirichletBC(domain, u,'T');
   
   // Exchage Halo regions:  top and bottom neighbors 
-  MPI_Sendrecv(&(u[  ny  *(nx+2*R)+1]), 1, xSlice, domain.u, 1, 
-	       &(u[  0   *(nx+2*R)+1]), 1, xSlice, domain.d, 1, 
+  MPI_Sendrecv(&(u[ R + n*ny ]), 1, xSlice, domain.u, 1, 
+	       &(u[ R + n* 0 ]), 1, xSlice, domain.d, 1, 
 	       Comm2d, MPI_STATUS_IGNORE);
-  MPI_Sendrecv(&(u[  1   *(nx+2*R)+1]), 1, xSlice, domain.d, 2, 
-	       &(u[(ny+1)*(nx+2*R)+1]), 1, xSlice, domain.u, 2, 
+  MPI_Sendrecv(&(u[ R + n*  1   ]), 1, xSlice, domain.d, 2, 
+	       &(u[ R + n*(ny+1)]), 1, xSlice, domain.u, 2, 
 	       Comm2d, MPI_STATUS_IGNORE);
   // Exchage Halo regions:  left and right neighbors 
-  MPI_Sendrecv(&(u[1*(nx+2*R)+  nx  ]), 1, ySlice, domain.r, 3, 
-	       &(u[1*(nx+2*R)+   0  ]), 1, ySlice, domain.l, 3, 
+  MPI_Sendrecv(&(u[ nx + n*R ]), 1, ySlice, domain.r, 3, 
+	       &(u[  0 + n*R ]), 1, ySlice, domain.l, 3, 
 	       Comm2d, MPI_STATUS_IGNORE);
-  MPI_Sendrecv(&(u[1*(nx+2*R)+   1  ]), 1, ySlice, domain.l, 4, 
-	       &(u[1*(nx+2*R)+(nx+1)]), 1, ySlice, domain.r, 4, 
+  MPI_Sendrecv(&(u[  R    + n*R ]), 1, ySlice, domain.l, 4, 
+	       &(u[(nx+1) + n*R ]), 1, ySlice, domain.r, 4, 
 	       Comm2d, MPI_STATUS_IGNORE);
 }
 

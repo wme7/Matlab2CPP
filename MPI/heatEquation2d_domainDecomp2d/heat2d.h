@@ -67,7 +67,7 @@
 #define RIGHT 3
 
 /* use floats of dobles */
-#define USE_FLOAT true // set false to use double
+#define USE_FLOAT false // set false to use double
 #if USE_FLOAT
  #define real	float
  #define MPI_CUSTOM_REAL MPI_FLOAT

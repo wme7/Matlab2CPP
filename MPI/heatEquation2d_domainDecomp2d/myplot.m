@@ -10,4 +10,4 @@ h = surf(x,y,S,'EdgeColor','none'); %colormap hot;
 axis equal;
 axis tight;
 
-%print('heat2d','-dpng')
+print('heat2d','-dpng')
