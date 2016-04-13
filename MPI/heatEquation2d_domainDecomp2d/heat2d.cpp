@@ -9,8 +9,8 @@ dmn Manage_Domain(int rank, int npcs, int *coord, int *ngbr){
   domain.ny = NY/SY;
   domain.nx = NX/SX;
   domain.size = domain.nx*domain.ny;
-  domain.rx = coord[0];
-  domain.ry = coord[1];
+  domain.rx = coord[1];
+  domain.ry = coord[0];
   domain.u = ngbr[UP];
   domain.d = ngbr[DOWN];
   domain.l = ngbr[LEFT];
@@ -18,14 +18,16 @@ dmn Manage_Domain(int rank, int npcs, int *coord, int *ngbr){
   
   // Have process 0 print out some information.
   if (rank==ROOT) {
-    printf ("HEAT_MPI:\n\n" );
-    printf ("  C++/MPI version\n" );
-    printf ("  Solve the 2D time-dependent heat equation.\n\n" );
+    printf("HEAT_MPI:\n\n" );
+    printf("  C++/MPI version\n" );
+    printf("  Solve the 2D time-dependent heat equation.\n\n" );
   } 
 
   // Print welcome message
-  printf ("  Commence Simulation: procs rank %d out of %d cores"
-	  " working with (%d +%d) x (%d +%d) cells\n",rank,npcs,domain.nx,2*R,domain.ny,2*R);
+  printf("  Commence Simulation:");
+  printf("  procs rank %d (ry=%d,rx=%d) out of %d cores"
+	 " working with (%d +%d) x (%d +%d) cells\n",
+	 rank,domain.ry,domain.rx,npcs,domain.nx,2*R,domain.ny,2*R);
 
   return domain;
 }
@@ -210,7 +212,7 @@ void Manage_Comms(dmn domain, MPI_Comm Comm2d, MPI_Datatype xSlice, MPI_Datatype
   if (rx==SX-1) Set_DirichletBC(domain, u,'R'); 
   if (ry==  0 ) Set_DirichletBC(domain, u,'B'); 
   if (ry==SY-1) Set_DirichletBC(domain, u,'T');
-  /*
+  
   // Exchage Halo regions:  top and bottom neighbors 
   MPI_Sendrecv(&(u[  ny  *(nx+2*R)+1]), 1, xSlice, domain.u, 1, 
 	       &(u[  0   *(nx+2*R)+1]), 1, xSlice, domain.d, 1, 
@@ -224,7 +226,7 @@ void Manage_Comms(dmn domain, MPI_Comm Comm2d, MPI_Datatype xSlice, MPI_Datatype
 	       Comm2d, MPI_STATUS_IGNORE);
   MPI_Sendrecv(&(u[1*(nx+2*R)+   1  ]), 1, ySlice, domain.l, 4, 
 	       &(u[1*(nx+2*R)+(nx+1)]), 1, ySlice, domain.r, 4, 
-	       Comm2d, MPI_STATUS_IGNORE);*/
+	       Comm2d, MPI_STATUS_IGNORE);
 }
 
 void Laplace2d(const int nx, const int ny, const int rx, const int ry,

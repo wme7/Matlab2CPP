@@ -121,11 +121,6 @@ int main ( int argc, char *argv[] ) {
   
   // Exchage Halo regions
   Manage_Comms(domain,Comm2d,xSlice,ySlice,t_u); 
-  if (rank==0) Print(t_u,nx+2*R,ny+2*R); MPI_Barrier(Comm2d);
-  if (rank==1) Print(t_u,nx+2*R,ny+2*R); MPI_Barrier(Comm2d);
-  if (rank==2) Print(t_u,nx+2*R,ny+2*R); MPI_Barrier(Comm2d);
-  if (rank==3) Print(t_u,nx+2*R,ny+2*R); MPI_Barrier(Comm2d);
-  if (rank==0) Print(h_u,NX,NY);
   
   // ROOT mode: Record the starting time.
   if (rank==ROOT) wtime=MPI_Wtime();
@@ -136,20 +131,28 @@ int main ( int argc, char *argv[] ) {
     if (rank==ROOT && step%10000==0) printf("  Step %d of %d\n",step,(int)NO_STEPS);
     
     // Exchange Boundaries and compute stencil
-    //Call_Laplace(domain,&t_u,&t_un); Manage_Comms(domain,Comm2d,xSlice,ySlice,t_un); // 1st iter
-    //Call_Laplace(domain,&t_un,&t_u); Manage_Comms(domain,Comm2d,xSlice,ySlice,t_u ); // 2nd iter
+    Call_Laplace(domain,&t_u,&t_un); Manage_Comms(domain,Comm2d,xSlice,ySlice,t_un); // 1st iter
+    Call_Laplace(domain,&t_un,&t_u); Manage_Comms(domain,Comm2d,xSlice,ySlice,t_u ); // 2nd iter
   }
   
   // ROOT mode: Record the final time.
   if (rank==ROOT) {
-    wtime = MPI_Wtime()-wtime; printf ("\n Wall clock elapsed = %f seconds\n\n", wtime );
+    wtime = MPI_Wtime()-wtime; printf ("\n Wall clock elapsed = %f seconds\n\n", wtime );    
   }
   
   // gather all pieces into the big data array
   MPI_Gatherv(t_u, 1, myLocal, h_u, sendcounts, displs, myGlobal, ROOT, Comm2d);
-
+ 
+  /*
+  // CAREFUL: uncomment only for debugging!
+  if (rank==0) Print(t_u,nx+2*R,ny+2*R); MPI_Barrier(Comm2d);
+  if (rank==1) Print(t_u,nx+2*R,ny+2*R); MPI_Barrier(Comm2d);
+  if (rank==2) Print(t_u,nx+2*R,ny+2*R); MPI_Barrier(Comm2d);
+  if (rank==3) Print(t_u,nx+2*R,ny+2*R); MPI_Barrier(Comm2d);
+  if (rank==0) Print(h_u,NX,NY);
+  */
   // save results to file
-  if (rank==ROOT) Save_Results(h_u);
+  if (rank==ROOT) Save_Results(h_u); 
 
   // Free MPI types
   //Manage_DataTypes(1,domain,&xSlice,&ySlice,&myLocal,&myGlobal);
@@ -157,7 +160,6 @@ int main ( int argc, char *argv[] ) {
   MPI_Type_free(&ySlice);
   MPI_Type_free(&myLocal);
   MPI_Type_free(&myGlobal);
-  
   
   // Free Memory
   Manage_Memory(1,domain,&h_u,&t_u,&t_un); 
