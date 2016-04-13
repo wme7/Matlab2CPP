@@ -1,4 +1,4 @@
-all: SendReceive Scatter ScatterGather withBoundaries Generalized Debugged ScatterGather3D
+all: SendReceive Scatter ScatterGather withBoundaries Generalized Debugged ScatterGather3D withBCs3D
 
 SendReceive: main1.cpp
 	mpic++ main1.cpp -o test1.run
@@ -20,6 +20,9 @@ Debugged: main6.cpp
 
 ScatterGather3D: main7.cpp
 	mpic++ main7.cpp -o test7.run
+
+withBCs3D: main8.cpp
+	mpic++ main8.cpp -o test8.run
 
 clean:
 	rm *.run
