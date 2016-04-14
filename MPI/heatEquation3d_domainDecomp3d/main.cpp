@@ -103,7 +103,7 @@ int main ( int argc, char *argv[] ) {
   MPI_Datatype yVector;
   MPI_Type_vector( ny, nx, nx+2*R, MPI_CUSTOM_REAL, &xySlice); MPI_Type_commit(&xySlice);
   MPI_Type_vector( ny,  1, nx+2*R, MPI_CUSTOM_REAL, &yVector); 
-  MPI_Type_create_hvector(nz, 1, (nx+2*R)*(ny+2*R)*sizeof(int), yVector, &yzSlice); MPI_Type_commit(&yzSlice);
+  MPI_Type_create_hvector(nz, 1, (nx+2*R)*(ny+2*R)*sizeof(real), yVector, &yzSlice); MPI_Type_commit(&yzSlice);
   MPI_Type_vector( nz, nx, (nx+2*R)*(ny+2*R), MPI_CUSTOM_REAL, &xzSlice); MPI_Type_commit(&xzSlice);
   
   // build sendcounts and displacements in root processor
@@ -122,12 +122,10 @@ int main ( int argc, char *argv[] ) {
     } 
   }
 
-  // Scatter global array data
+  // Scatter global array data and exchange halo regions
   MPI_Scatterv(h_u, sendcounts, displs, myGlobal, t_u, 1, myLocal, ROOT, Comm3d);
-  
-  // Exchage Halo regions
-  Manage_Comms(domain,Comm3d,xySlice,yzSlice,xzSlice,t_u); 
-  
+  Manage_Comms(domain,Comm3d,xySlice,yzSlice,xzSlice,t_u); MPI_Barrier(Comm3d);
+   
   // ROOT mode: Record the starting time.
   if (rank==ROOT) wtime=MPI_Wtime();
 
@@ -137,15 +135,32 @@ int main ( int argc, char *argv[] ) {
     if (rank==ROOT && step%10000==0) printf("  Step %d of %d\n",step,(int)NO_STEPS);
     
     // Exchange Boundaries and compute stencil
-    //Call_Laplace(domain,&t_u,&t_un); Manage_Comms(domain,Comm3d,xySlice,yzSlice,xzSlice,t_un); // 1st iter
-    //Call_Laplace(domain,&t_un,&t_u); Manage_Comms(domain,Comm3d,xySlice,yzSlice,xzSlice,t_u ); // 2nd iter
+    Call_Laplace(domain,&t_u,&t_un);Manage_Comms(domain,Comm3d,xySlice,yzSlice,xzSlice,t_un);//1stIter
+    Call_Laplace(domain,&t_un,&t_u);Manage_Comms(domain,Comm3d,xySlice,yzSlice,xzSlice,t_u );//2ndIter
   }
   
   // ROOT mode: Record the final time.
   if (rank==ROOT) {
     wtime = MPI_Wtime()-wtime; printf ("\n Wall clock elapsed = %f seconds\n\n", wtime );    
   }
-  
+  /*
+  // CAREFUL: uncomment only for debugging. Print subroutine
+  for (int p=0; p<size; p++) {
+    if (rank == p) {
+      printf("Local process on rank %d is:\n", rank);
+      for (k=0; k<nz+2*R; k++) {
+	printf("-- layer %d --\n",k);
+	for (j=0; j<ny+2*R; j++) {
+	  putchar('|');
+	  for (i=0; i<nx+2*R; i++) printf("%1.1f ",t_u[i+(nx+2*R)*j+(nx+2*R)*(ny+2*R)*k]);
+	  printf("|\n");
+	}
+	printf("\n");
+      }
+    }
+    MPI_Barrier(Comm3d);
+  }*/
+
   // gather all pieces into the big data array
   MPI_Gatherv(t_u, 1, myLocal, h_u, sendcounts, displs, myGlobal, ROOT, Comm3d);
  

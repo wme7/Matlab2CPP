@@ -96,15 +96,15 @@ void Manage_Memory(int phase, dmn domain, real **h_u, real **t_u, real **t_un){
 /******************************/
 /* TEMPERATURE INITIALIZATION */
 /******************************/
-void Call_IC(const int IC, double * __restrict u0){
+void Call_IC(const int IC, real * __restrict u0){
   int i, j, k, o; const int XY=NX*NY;
   switch (IC) {
   case 1: {
     for (k = 0; k < NZ; k++) {
       for (j = 0; j < NY; j++) {
 	for (i = 0; i < NX; i++) {
-	  // set all domain's cells equal to zero
-	  o = i+NX*j+XY*k;  u0[o] = 0.0;
+	  // set all domain's cells equal to 0.1
+	  o = i+NX*j+XY*k;  u0[o] = 0.1;
 	  // set BCs in the domain 
 	  if (k==0)    u0[o] = 1.0; // bottom
 	  if (k==NZ-1) u0[o] = 1.0; // top
@@ -163,22 +163,44 @@ void Print(real *data, int nx, int ny) {
 
 void Set_NeumannBC(dmn domain, real *u, const char letter){
   // corrections for global indexes
-  int xo = domain.rx*domain.nx;
-  int yo = domain.ry*domain.ny;
-  int n = domain.nx+2*R, m=(domain.nx+2*R)*(domain.ny+2*R); // lengths 
+  int i, j, k, n=domain.nx+2*R, m=(domain.nx+2*R)*(domain.ny+2*R); // lengths 
 
   switch (letter) {
   case 'W': { /* west BC */
+    i = R;
+    for (k=0; k<domain.nz; k++) 
+      for (j=0; j<domain.ny; j++) 
+	u[(i-1)+n*(j+R)+m*(k+R)] = u[i+n*(j+R)+m*(k+R)]; 
   }
   case 'E': { /* east BC */
+    i = domain.nx;
+    for (k=0; k<domain.nz; k++) 
+      for (j=0; j<domain.ny; j++) 
+	u[(i+1)+n*(j+R)+m*(k+R)] = u[i+n*(j+R)+m*(k+R)]; 
   }
   case 'S': { /* south BC */
+    j = R;
+    for (k=0; k<domain.nz; k++) 
+      for (i=0; i<domain.nx; i++) 
+	u[(i+R)+n*(j-1)+m*(k+R)] = u[(i+R)+n*j+m*(k+R)]; 
   }
   case 'N': { /* north BC */
+    j = domain.ny;
+    for (k=0; k<domain.nz; k++) 
+      for (i=0; i<domain.nx; i++) 
+	u[(i+R)+n*(j+1)+m*(k+R)] = u[(i+R)+n*j+m*(k+R)]; 
   }
   case 'B': { /* bottom BC */
+    k = R;
+    for (j=0; j<domain.ny; j++) 
+      for (i=0; i<domain.nx; i++) 
+	u[(i+R)+n*(j+R)+m*(k-1)] = u[(i+R)+n*(j+R)+m*k]; 
   }
   case 'T': { /* top BC */
+    k = domain.nz;
+    for (j=0; j<domain.ny; j++) 
+      for (i=0; i<domain.nx; i++) 
+	u[(i+R)+n*(j+R)+m*(k+1)] = u[(i+R)+n*(j+R)+m*k]; 
   }
   }
 }
@@ -221,8 +243,8 @@ void Manage_Comms(dmn domain, MPI_Comm Comm3d, MPI_Datatype xySlice, MPI_Datatyp
 }
 
 void Laplace3d(const int nx, const int ny, const int nz, 
-		const int rx, const int ry, const int rz, 
-		const real * __restrict__ u, real * __restrict__ un){
+	       const int rx, const int ry, const int rz, 
+	       const real * __restrict__ u, real * __restrict__ un){
   // Using (i,j,k) = [i+N*j+M*N*k] indexes
   int i, j, k, o, n, s, e, w, t, b; 
   const int xy=nx*ny;

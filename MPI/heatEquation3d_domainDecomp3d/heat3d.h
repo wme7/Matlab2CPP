@@ -5,9 +5,9 @@
 #include <mpi.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 10 // number of cells in the x-direction
-#define NY 10 // number of cells in the y-direction
-#define NZ 10 // number of cells in the z-direction
+#define NX 128 // number of cells in the x-direction
+#define NY 128 // number of cells in the y-direction
+#define NZ 128 // number of cells in the z-direction
 #define L 10.0 // domain length
 #define W 10.0 // domain width
 #define H 20.0 // domain width
@@ -60,7 +60,7 @@
 #define EAST   5
 
 /* use floats of dobles */
-#define USE_FLOAT false // set false to use double
+#define USE_FLOAT true // set false to use double
 #if USE_FLOAT
  #define real	float
  #define MPI_CUSTOM_REAL MPI_FLOAT
