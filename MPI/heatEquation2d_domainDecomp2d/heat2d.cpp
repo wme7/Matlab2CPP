@@ -175,14 +175,14 @@ void Set_DirichletBC(dmn domain, real *u, const char letter){
 
   switch (letter) {
   case 'B': { /* bottom BC */
-    real u_bl = 0.7f;
-    real u_br = 1.0f;
+    real u_bl = 0.7;
+    real u_br = 1.0;
     int j = R;
     for (int i = 0; i < domain.nx; i++) u[i+R+n*j] = u_bl + (u_br-u_bl)*(i+xo)/(NX-1); break;
   }
   case 'T': { /* top BC */
-    real u_tl = 0.7f;
-    real u_tr = 1.0f;
+    real u_tl = 0.7;
+    real u_tr = 1.0;
     int j = domain.ny;
     for (int i = 0; i < domain.nx; i++) u[i+R+n*j] = u_tl + (u_tr-u_tl)*(i+xo)/(NX-1); break;
   }

@@ -7,7 +7,7 @@
 #define DEBUG 0 // Display all error messages
 #define NX 128 // number of cells in the x-direction
 #define NY 128 // number of cells in the y-direction
-#define NZ 128 // number of cells in the z-direction
+#define NZ 256 // number of cells in the z-direction
 #define L 10.0 // domain length
 #define W 10.0 // domain width
 #define H 20.0 // domain width
@@ -49,7 +49,7 @@
 /* MPI Grid size */
 #define SX 2 // size in x
 #define SY 2 // size in y
-#define SZ 2 // size in y
+#define SZ 2 // size in z
 
 // neighbours convention
 #define BOTTOM 0
@@ -98,5 +98,5 @@ void Manage_DataTypes(int phase, dmn domain,
 		      MPI_Datatype *myGlobal, MPI_Datatype *myLocal);
 void Call_Laplace(dmn domain, real **t_u, real **t_un);
 void Call_IC(int IC, real *h_u);
-void Print(real *h_u, int nx, int ny);
+void Print(real *h_u, int nx, int ny, int nz);
 void Save_Results(real *h_u);

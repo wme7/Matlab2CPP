@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
             }
             disp += SX*(ny-1); // y-displacements
 	  }
-	  disp += SX*(ny-1)*(nz-1); // z-displacements
+	  disp += SX*NY*(nz-1); // z-displacements
         } 
     }
     

@@ -99,6 +99,17 @@ void Manage_Memory(int phase, dmn domain, real **h_u, real **t_u, real **t_un){
 void Call_IC(const int IC, real * __restrict u0){
   int i, j, k, o; const int XY=NX*NY;
   switch (IC) {
+  case 0: { /* for verification only! */
+    for (k = 0; k < NZ; k++) {
+      for (j = 0; j < NY; j++) {
+	for (i = 0; i < NX; i++) {
+	  // set all domain's cells equal to 0.1
+	  o = i+NX*j+XY*k;  u0[o] = o;
+	}
+      }
+    }
+    break;
+  }
   case 1: {
     for (k = 0; k < NZ; k++) {
       for (j = 0; j < NY; j++) {
@@ -150,11 +161,15 @@ void Save_Results(real *u){
   }
 }
 
-void Print(real *data, int nx, int ny) {    
-  printf("-- Memory --\n");
-  for (int i=0; i<ny; i++) {
-    for (int j=0; j<nx; j++) {
-      printf("%1.2f ", data[i*nx+j]);
+void Print(real *data, int nx, int ny, int nz) {    
+  printf("-- Memory --\n"); int xy=nx*ny;
+  for (int k=0; k<nz; k++) {
+    printf("-- layer %d --\n",k);
+    for (int j=0; j<ny; j++) {
+      for (int i=0; i<nx; i++) {
+	printf("%3.0f ", data[i+nx*j+xy*k]);
+      }
+      printf("\n");
     }
     printf("\n");
   }
@@ -206,39 +221,36 @@ void Set_NeumannBC(dmn domain, real *u, const char letter){
 }
 
 void Manage_Comms(dmn domain, MPI_Comm Comm3d, MPI_Datatype xySlice, MPI_Datatype yzSlice, MPI_Datatype xzSlice, real *u) {
-  const int nx = domain.nx;
-  const int ny = domain.ny;
-  const int nz = domain.nz;
   const int n = R+domain.nx+R, m=(domain.nx+2*R)*(domain.ny+2*R); // lengths 
   
   // Impose BCs!
   if (domain.rx==  0 ) Set_NeumannBC(domain, u,'W'); 
   if (domain.rx==SX-1) Set_NeumannBC(domain, u,'E'); 
   if (domain.ry==  0 ) Set_NeumannBC(domain, u,'S'); 
-  if (domain.ry==SY-1) Set_NeumannBC(domain, u,'N');
+  if (domain.ry==SY-1) Set_NeumannBC(domain, u,'N'); 
   if (domain.rz==  0 ) Set_NeumannBC(domain, u,'B'); 
-  if (domain.rz==SZ-1) Set_NeumannBC(domain, u,'T');
+  if (domain.rz==SZ-1) Set_NeumannBC(domain, u,'T'); 
     
     // Exchange xy - slices with top and bottom neighbors 
-    MPI_Sendrecv(&(u[ R+ n*R+ m*nz ]), 1, xySlice, domain.b,1, 
-		 &(u[ R+ n*R+ m*0  ]), 1, xySlice, domain.t,1, 
+    MPI_Sendrecv(&(u[ R+ n*R+ m*domain.nz ]), 1, xySlice, domain.b,1, 
+		 &(u[    R+ n*R+ m*0      ]), 1, xySlice, domain.t,1, 
 		 Comm3d, MPI_STATUS_IGNORE);
-    MPI_Sendrecv(&(u[ R+ n*R+ m*R  ]), 1, xySlice, domain.t,2, 
-		 &(u[R+n*R+m*(nz+1)]), 1, xySlice, domain.b,2, 
+    MPI_Sendrecv(&(u[    R+ n*R+ m*R      ]), 1, xySlice, domain.t,2, 
+		 &(u[R+n*R+m*(domain.nz+1)]), 1, xySlice, domain.b,2, 
 		 Comm3d, MPI_STATUS_IGNORE);
     // Exchange yz - slices with left and right neighbors 
-    MPI_Sendrecv(&(u[ nx+ n*R+ m*R ]), 1, yzSlice, domain.e,3, 
-		 &(u[ 0 + n*R+ m*R ]), 1, yzSlice, domain.w,3, 
+    MPI_Sendrecv(&(u[ domain.nx+ n*R+ m*R ]), 1, yzSlice, domain.e,3, 
+		 &(u[    0 + n*R+ m*R     ]), 1, yzSlice, domain.w,3, 
 		 Comm3d, MPI_STATUS_IGNORE);
-    MPI_Sendrecv(&(u[ R + n*R+ m*R ]), 1, yzSlice, domain.w,4, 
-    		 &(u[(nx+1)+n*R+m*R]), 1, yzSlice, domain.e,4, 
+    MPI_Sendrecv(&(u[    R + n*R+ m*R     ]), 1, yzSlice, domain.w,4, 
+    		 &(u[(domain.nx+1)+n*R+m*R]), 1, yzSlice, domain.e,4, 
 		 Comm3d, MPI_STATUS_IGNORE);
     // Exchange xz - slices with south and north neighbors 
-    MPI_Sendrecv(&(u[ R+ n*ny+ m*R ]), 1, xzSlice, domain.s,5, 
-		 &(u[ R+ n*0 + m*R ]), 1, xzSlice, domain.n,5, 
+    MPI_Sendrecv(&(u[ R+ n*domain.ny+ m*R ]), 1, xzSlice, domain.s,5, 
+		 &(u[    R+ n*0 + m*R     ]), 1, xzSlice, domain.n,5, 
 		 Comm3d, MPI_STATUS_IGNORE);
-    MPI_Sendrecv(&(u[ R+ n*R + m*R ]), 1, xzSlice, domain.n,6, 
-    		 &(u[R+n*(ny+1)+m*R]), 1, xzSlice, domain.s,6, 
+    MPI_Sendrecv(&(u[    R+ n*R + m*R     ]), 1, xzSlice, domain.n,6, 
+    		 &(u[R+n*(domain.ny+1)+m*R]), 1, xzSlice, domain.s,6, 
 		 Comm3d, MPI_STATUS_IGNORE);
 }
 
@@ -273,5 +285,5 @@ void Laplace3d(const int nx, const int ny, const int nz,
 
 void Call_Laplace(dmn domain, real **u, real **un){
   // Produce one iteration of the laplace operator
-  Laplace3d(domain.nz+2*R,domain.ny+2*R,domain.nz+2*R,domain.rx,domain.ry,domain.rz,*u,*un);
+  Laplace3d(domain.nx+2*R,domain.ny+2*R,domain.nz+2*R,domain.rx,domain.ry,domain.rz,*u,*un);
 }

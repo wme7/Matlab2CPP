@@ -107,8 +107,8 @@ int main(int argc, char **argv) {
 
     /* array sizes */
     const int NX =6;
-    const int NY =4;
-    const int NZ =2;
+    const int NY =6;
+    const int NZ =12;
     const int nx =NX/SX;
     const int ny =NY/SY;
     const int nz =NZ/SZ;
@@ -184,28 +184,13 @@ int main(int argc, char **argv) {
             }
             disp += SX*(ny-1); // y-displacements
 	  }
-	  disp += SX*(ny-1)*(nz-1); // z-displacements
+	  disp += SX*NY*(nz-1); // z-displacements
         } 
     }
     
     // scatter pieces of the big data array 
     MPI_Scatterv(bigarray, sendcounts, displs, myGlobal, 
 		 subarray, 1, myLocal, ROOT, Comm3d);
-		 /*
-    // Exchange x - slices with top and bottom neighbors 
-    MPI_Sendrecv(&(subarray[  ny  *(nx+2*R)+1]), 1, xSlice, nbrs[UP]  , 1, 
-		 &(subarray[  0   *(nx+2*R)+1]), 1, xSlice, nbrs[DOWN], 1, 
-		 Comm2d, MPI_STATUS_IGNORE);
-    MPI_Sendrecv(&(subarray[  1   *(nx+2*R)+1]), 1, xSlice, nbrs[DOWN], 2, 
-		 &(subarray[(ny+1)*(nx+2*R)+1]), 1, xSlice, nbrs[UP]  , 2, 
-		 Comm2d, MPI_STATUS_IGNORE);
-    // Exchange y - slices with left and right neighbors 
-    MPI_Sendrecv(&(subarray[1*(nx+2*R)+  nx  ]), 1, ySlice, nbrs[RIGHT],3, 
-		 &(subarray[1*(nx+2*R)+   0  ]), 1, ySlice, nbrs[LEFT] ,3, 
-		 Comm2d, MPI_STATUS_IGNORE);
-    MPI_Sendrecv(&(subarray[1*(nx+2*R)+   1  ]), 1, ySlice, nbrs[LEFT] ,4, 
-    		 &(subarray[1*(nx+2*R)+(nx+1)]), 1, ySlice, nbrs[RIGHT],4, 
-		 Comm2d, MPI_STATUS_IGNORE);*/
         
     // every processor prints the subarray
     for (int p=0; p<size; p++) {

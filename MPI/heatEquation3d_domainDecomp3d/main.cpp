@@ -118,7 +118,7 @@ int main ( int argc, char *argv[] ) {
 	}
 	disp += SX*(ny-1); // y-displacements
       }
-      disp += SX*(ny-1)*(nz-1); // z-displacements
+      disp += SX*NY*(nz-1); // z-displacements
     } 
   }
 
@@ -152,19 +152,20 @@ int main ( int argc, char *argv[] ) {
 	printf("-- layer %d --\n",k);
 	for (j=0; j<ny+2*R; j++) {
 	  putchar('|');
-	  for (i=0; i<nx+2*R; i++) printf("%1.1f ",t_u[i+(nx+2*R)*j+(nx+2*R)*(ny+2*R)*k]);
+	  for (i=0; i<nx+2*R; i++) printf("%3.0f ",t_u[i+(nx+2*R)*j+(nx+2*R)*(ny+2*R)*k]);
 	  printf("|\n");
 	}
 	printf("\n");
       }
     }
     MPI_Barrier(Comm3d);
-  }*/
+    }*/
 
   // gather all pieces into the big data array
   MPI_Gatherv(t_u, 1, myLocal, h_u, sendcounts, displs, myGlobal, ROOT, Comm3d);
  
   // save results to file
+  //if (rank==0) Print(h_u,NX,NY,NZ);
   if (rank==ROOT) Save_Results(h_u); 
 
   // Free MPI types
