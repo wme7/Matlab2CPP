@@ -19,8 +19,12 @@ CUDALDFLAGS= -L ${CUDA_INSTALL_PATH}/lib64 -lcuda -lcudart
 # procedure
 all: MAIN
 
-MAIN: check.cpp
-	nvcc $(MPI_INCLUDES) $(CUDA_INCLUDES) check.cpp -o checkCUDAaware.run
+MAIN: GPU_CORE
+	mpic++ $(MPI_INCLUDES) $(CUDALDFLAGS) gpu_mpi.o -o testCUDAaware.run
+
+GPU_CORE: check.cu
+	nvcc $(MPI_INCLUDES) $(NVCCFLAGS) -c check.cu -o gpu_mpi.o
 
 clean:
+	rm *.o
 	rm *.run
