@@ -1,3 +1,3 @@
 make clean
 make
-mpirun -np 16 heat2d.run
+mpirun -np 4 heat2d.run

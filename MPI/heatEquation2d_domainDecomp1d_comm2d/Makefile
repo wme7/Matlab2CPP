@@ -9,13 +9,13 @@ CFLAGS= -O3 -march=native #-Wall
 
 # Commands
 all: MAIN CPU_CORE
-	mpic++ $(MPI_INCLUDES) $(CFLAGS) main.o tools3d.o -o heat3d.run
+	mpic++ $(MPI_INCLUDES) $(CFLAGS) main.o tools2d.o -o heat2d.run
 
 MAIN: main.cpp
-	mpic++ $(MPI_INCLUDES) $(CFLAGS) -c main.cpp -o main.o
+	mpic++ $(MPI_INCLUDES) $(CFLAGS) -c main.cpp
 
-CPU_CORE: heat3d.cpp
-	mpic++ $(MPI_INCLUDES) $(CFLAGS) -c heat3d.cpp -o tools3d.o
+CPU_CORE: heat2d.cpp
+	mpic++ $(MPI_INCLUDES) $(CFLAGS) -c heat2d.cpp -o tools2d.o
 
 clean:
 	rm *.o

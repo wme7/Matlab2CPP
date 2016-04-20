@@ -60,17 +60,19 @@
 
 /* Declare structures */
 typedef struct {
-  	int rank; // global rank
-  	int npcs; // total number of procs
-	int size; // domain size (local)
-  	int nx; // number of cells in the x-direction (local)
-  	int ny; // number of cells in the y-direction (local)
-  	int u; // upper neigbour rank
-  	int d; // lower neigbour rank
+  int rank; // global rank
+  int npcs; // total number of procs
+  int size; // domain size (local)
+  int nx; // number of cells in the x-direction (local)
+  int ny; // number of cells in the y-direction (local)
+  int rx; // x-rank coordinate
+  int ry; // y-rank coordinate
+  int u; // upper neigbour rank
+  int d; // lower neigbour rank
 } dmn;
 
 /* Declare functions */
- dmn Manage_Domain(int rank, int npcs, int *nbgs);
+ dmn Manage_Domain(int rank, int npcs, int *coord, int *nbgs);
 void Manage_Comms(dmn domain, MPI_Comm Comm, real *h_u);
 void Manage_Memory(int phase, dmn domain, real **g_u, real **h_u, real **h_un);
 void Call_Laplace(dmn domain, real **h_u, real **h_un);

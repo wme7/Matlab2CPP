@@ -50,7 +50,7 @@ int main ( int argc, char *argv[] ) {
   // Build a 2D cartessian communicator
   MPI_Comm Comm2d;
   int ndim=2;
-  int dim[2]={SX,SY}; // domain decomposition subdomains
+  int dim[2]={SY,SX}; // domain decomposition subdomains
   int period[2]={false,false}; // periodic conditions
   int reorder={true}; // allow reorder if necesary
   int coord[2];

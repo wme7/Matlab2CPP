@@ -1,7 +1,7 @@
 
 #include "heat2d.h"
 
-dmn Manage_Domain(int rank, int npcs, int *ngbr){
+dmn Manage_Domain(int rank, int npcs, int *coord, int *ngbr){
   // allocate sub-domain for a one-dimensional domain decomposition in the Y-direction
   dmn domain;
   domain.rank = rank;
@@ -9,6 +9,8 @@ dmn Manage_Domain(int rank, int npcs, int *ngbr){
   domain.nx = NX/1;  /* NX/SX */
   domain.ny = NY/SY;
   domain.size = domain.nx*domain.ny;
+  domain.rx = coord[1];
+  domain.ry = coord[0];
   domain.u = ngbr[UP];
   domain.d = ngbr[DOWN];
   
@@ -152,8 +154,8 @@ void Manage_Comms(dmn domain, MPI_Comm Comm2d, real *u) {
   const int ny = domain.ny;
   
 // Impose BCs at the top and bottom regions
-  if (domain.rank==  0 ) Set_DirichletBC(domain, u,'B'); // impose Dirichlet BC u[row  1 ]
-  if (domain.rank==SY-1) Set_DirichletBC(domain, u,'T'); // impose Dirichlet BC u[row M-1]
+  if (domain.ry==  0 ) Set_DirichletBC(domain, u,'B'); // impose Dirichlet BC u[row  1 ]
+  if (domain.ry==SY-1) Set_DirichletBC(domain, u,'T'); // impose Dirichlet BC u[row M-1]
 
   // Exchage Halo regions:  top and bottom neighbors 
   MPI_Sendrecv( &(u[ nx*  ny  ]), nx, MPI_CUSTOM_REAL, domain.u, 1, 

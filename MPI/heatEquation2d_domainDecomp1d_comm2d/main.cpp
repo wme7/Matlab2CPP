@@ -44,7 +44,7 @@ int main ( int argc, char *argv[] ) {
   // Build a 2D cartessian communicator
   MPI_Comm Comm2d;
   int ndim=2;
-  int dim[2]={1,SY}; // domain decomposition subdomains
+  int dim[2]={SY,1}; // domain decomposition subdomains
   int period[2]={false,false}; // periodic conditions
   int reorder={true}; // allow reorder if necesary
   int coord[2];
@@ -56,7 +56,7 @@ int main ( int argc, char *argv[] ) {
   MPI_Cart_shift(Comm2d,0,1,&nbrs[DOWN],&nbrs[UP]);
 
   // Manage Domain sizes
-  domain = Manage_Domain(rank,npcs,nbrs); 
+  domain = Manage_Domain(rank,npcs,coord,nbrs); 
 
   // Allocate Memory
   Manage_Memory(0,domain,&g_u,&t_u,&t_un);
@@ -89,11 +89,11 @@ int main ( int argc, char *argv[] ) {
   MPI_Gather(t_u+NX, domain.size, MPI_CUSTOM_REAL, g_u, domain.size, MPI_CUSTOM_REAL, ROOT, Comm2d);
   /*
   // CAREFUL: uncomment only for debugging!
-  if (rank==0) Print(t_u,nx+0*R,ny+2*R); MPI_Barrier(Comm2d);
-  if (rank==1) Print(t_u,nx+0*R,ny+2*R); MPI_Barrier(Comm2d);
-  if (rank==2) Print(t_u,nx+0*R,ny+2*R); MPI_Barrier(Comm2d);
-  if (rank==3) Print(t_u,nx+0*R,ny+2*R); MPI_Barrier(Comm2d);
-  if (rank==0) Print(h_u,NX,NY);
+  if (rank==0) Print(t_u,NX,domain.ny+2*R); MPI_Barrier(Comm2d);
+  if (rank==1) Print(t_u,NX,domain.ny+2*R); MPI_Barrier(Comm2d);
+  if (rank==2) Print(t_u,NX,domain.ny+2*R); MPI_Barrier(Comm2d);
+  if (rank==3) Print(t_u,NX,domain.ny+2*R); MPI_Barrier(Comm2d);
+  if (rank==0) Print(g_u,NX,NY);
   */
   // save results to file
   if (rank==ROOT) Save_Results(g_u);
