@@ -1,3 +1,3 @@
 make clean
 make
-~/openMPI/bin/mpirun -np 2 mpi_test 0 1
+~/openMPI/bin/mpirun -np 2 test.run 0 1
