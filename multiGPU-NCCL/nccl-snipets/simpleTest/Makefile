@@ -6,15 +6,14 @@ CUDA_HOME ?= /usr/local/cuda-7.5
 NCCL_HOME ?= /home/manuel/nccl
 
 # Basic compilation flags:
-CPPFLAGS   := -I$(CUDA_HOME)/include
 CXXFLAGS   := -O3 -fPIC -fvisibility=hidden
 NVCUFLAGS  := -gencode=arch=compute_35,code=sm_35 -O3 -lineinfo -std=c++11 -maxrregcount 96
 
 # ------------------
 VERBOSE ?= 0
 ifneq ($(VERBOSE), 0)
-NVCUFLAGS += -Xptxas -v -Xcompiler -Wall,-Wextra
 CXXFLAGS  += -Wall -Wextra
+NVCUFLAGS += -Xptxas -v -Xcompiler -Wall,-Wextra
 endif
 # ------------------
 
@@ -28,7 +27,7 @@ LIBLINK    := $(patsubst lib%.so, -l%, $(LIBNAME))
 
 all: test
 
-test : reduce_test.cu 
+test : all_reduce_test.cu 
 	@printf "Building  %-25s > %-24s\n" $< $@.run
 	nvcc $(NCCLFLAGS) $(CPPFLAGS) $(NVCUFLAGS) --compiler-options "$(CXXFLAGS)" -o $@.run $<  $(LIBLINK) $(LDFLAGS) -lcuda -lcurand -lnvToolsExt
 
