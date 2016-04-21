@@ -2,6 +2,7 @@
 
 __global__ void printValue( int *value) {
 printf("value %d\n",value[0]);
+printf("value %d\n",value[1]);
 }
  
 void hostFunction(){
