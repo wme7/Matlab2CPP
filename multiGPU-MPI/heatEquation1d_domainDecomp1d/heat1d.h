@@ -17,10 +17,40 @@
 #define ROOT 0 // define root processor
 #define PI 3.1415926535897932f
 
+// Testing :
+// A grid of n subgrids
+  /* 
+  |	   0    |    1    |     |    n    |  rank
+  |---(0)---|---(1)---| ... |---(n)---|  (gpu)
+  */
+
+/* MPI Grid size */
+#define SX 2 // size in x 
+
+/* use floats of dobles */
+#define USE_FLOAT true // set false to use real
+#if USE_FLOAT
+	#define real	float
+	#define MPI_CUSTOM_REAL MPI_FLOAT
+#else
+	#define real	real
+	#define MPI_CUSTOM_REAL MPI_real
+#endif
+
+/* Declare structures */
+typedef struct {
+	int gpu; // domain associated gpu
+	int rank; // global rank
+	int npcs; // total number of procs
+	int size; // domain size (local)
+	int nx; // number of cells in the x-direction (local)
+	int rx; // x-rank coordinate
+} dmn;
+
 /* Declare functions */
-int Manage_Domain(int phase, int rank, int size);
-void Manage_Memory(int phase, int rank, int size, int nx, double **g_u, double **h_u, double **h_un);
-void Manage_Comms(int rank, int size, int nx, double **h_u);
-void Call_Laplace(int nx, double **h_u, double **h_un);
-void Call_IC(int IC, double *h_u);
-void Save_Results(double *h_u);
+ dmn Manage_Domain(int rank, int size, int gpu);
+void Manage_Memory(int phase, dmn domain, real **h_u, real **d_u, real **d_un);
+void Manage_Comms(dmn domain, real **d_u);
+void Call_Laplace(dmn domain, real **d_u, real **d_un);
+void Call_IC(int IC, real *h_u);
+void Save_Results(real *h_u);
