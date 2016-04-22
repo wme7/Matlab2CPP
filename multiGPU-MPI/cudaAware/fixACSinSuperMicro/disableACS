@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+nvidia-smi -pm 1
 for i in $(sudo lspci -d "10b5:" | awk '{print $1}') ; do
        o=$(sudo lspci -vvv -s $i | grep ACSCtl)
        if [ $? -eq 0 ] ; then

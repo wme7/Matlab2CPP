@@ -38,19 +38,33 @@
 #define NITERS 1
 
 int main(int argc, char *argv[]) {
+
+  // Solution arrays
+  double *g_u; /* will be allocated in ROOT only */ 
+  double *t_u;
+  double *t_un;
+
+  // nccl variables
   ncclUniqueId commId;
-  int size, rank;
   ncclResult_t ret;
 
+  // Auxiliary variables
+  int nx;
+  int rank;
+  int size;
+  int step;
+  double wtime;
+  
+  // Initialize MPI
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  if (argc < size) {
-    printf("Usage : %s <GPU list per rank>\n", argv[0]);
-  }
+  // verify that rank = total number of GPUs
+  if (argc < size) printf("Usage : %s <GPU list per rank>\n", argv[0]);
 
   int gpu = atoi(argv[rank+1]);
+  printf("rank %d is associated with gpu %d\n",rank,gpu);
 
   // We have to set our device before NCCL init
   CUDACHECK(cudaSetDevice(gpu));
