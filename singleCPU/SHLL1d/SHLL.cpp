@@ -1,6 +1,3 @@
-/*	SHLL_subroutines.cpp
-	Auxiliary functions for solving the SHLL solver
-*/
 
 #include "SHLL.h"
 

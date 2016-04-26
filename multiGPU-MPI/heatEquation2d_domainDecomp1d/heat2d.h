@@ -5,27 +5,39 @@
 #include <mpi.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 256 // number of cells in the x-direction 
+#define NX 10 // number of cells in the x-direction
+#define NY 20 // number of cells in the y-direction
 #define L 10.0 // domain length
+#define W 10.0 // domain width
 #define C 1.0 // c, material conductivity. Uniform assumption.
-#define TEND 0.1 // tEnd, output time
+#define TEND 1.0 // tEnd, output time
 #define DX (L/NX) // dx, cell size
-#define DT (1/(2*C*(1/DX/DX))) // dt, fix time step size
+#define DY (W/NY) // dy, cell size
+#define DT (1/(2*C*(1/DX/DX+1/DY/DY))) // dt, fix time step size
 #define KX (C*DT/(DX*DX)) // numerical conductivity
+#define KY (C*DT/(DY*DY)) // numerical conductivity
 #define NO_STEPS (TEND/DT) // No. of time steps
-#define R 1 // radius of halo region
-#define ROOT 0 // define root processor
-#define PI 3.1415926535897932f
+#define R 1 // radius or width of the hallo region
+#define ROOT 0 // define root process
+#define PI 3.1415926535897932f // PI number
 
 // Testing :
 // A grid of n subgrids
-  /* 
-  |    0    |    1    |     |    n    |  rank
-  |---(0)---|---(1)---| ... |---(n)---|  (gpu)
+  /*
+  +-------+ 
+  | 0 (0) | mpi_rank (gpu)
+  +-------+
+  | 1 (1) |
+  +-------+
+     ...
+  +-------+
+  | n (n) |
+  +-------+
   */
 
 /* MPI Grid size */
-#define SX 2 // size in x 
+#define SX 1 // size in x <-- fix parameter!
+#define SY 2 // size in y 
 
 /* use floats of dobles */
 #define USE_FLOAT true // set false to use real
@@ -51,18 +63,18 @@ typedef struct {
 	int rank; // global rank
 	int npcs; // total number of procs
 	int size; // domain size (local)
-	int nx; // number of cells in the x-direction (local)
-	int rx; // x-rank coordinate
+	int nx; // local number of cells in the x-direction 
+	int ny; // local number of cells in the y-direction
+	int rx; // y-rank coordinate
+	int ry; // y-rank coordinate
 } dmn;
 
-/* Declare C++ functions */
+/* Declare functions */
 void Manage_Devices();
- dmn Manage_Domain(int rank, int size, int gpu);
+ dmn Manage_Domain(int rank, int npcs, int gpu);
 void Manage_Memory(int phase, dmn domain, real **h_u, real **t_u, real **d_u, real **d_un);
-void Manage_Comms(int phase, dmn domain, real **t_u, real **d_u );
-void Call_Laplace(dmn domain, real **d_u, real **d_un); 
+void Manage_Comms(int phase, dmn domain, real **t_u, real **d_u);
+void Call_Laplace(dmn domain, real **d_u, real **d_un);
 void Call_IC(int IC, real *h_u);
 void Save_Results(real *h_u);
-
-/* Declare pure C functions */
-//extern "C" void Call_Laplace(dmn domain, real **d_u, real **d_un); 
+void Print_SubDomain(dmn domain, real *h_u);

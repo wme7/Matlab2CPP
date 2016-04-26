@@ -12,7 +12,7 @@ int main(int argc, char *argv[]){
 
     // Dimensions of the dataset
     int blockSize = 256;
-    int gridSize = 10000;
+    int gridSize = 1000000;
     int dataSizePerNode = gridSize * blockSize;
 
     // Initialize MPI state

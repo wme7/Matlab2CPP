@@ -39,21 +39,13 @@
 
 int main(int argc, char *argv[]) {
 
-  // Solution arrays
-  double *g_u; /* will be allocated in ROOT only */ 
-  double *t_u;
-  double *t_un;
-
   // nccl variables
   ncclUniqueId commId;
   ncclResult_t ret;
 
   // Auxiliary variables
-  int nx;
   int rank;
   int size;
-  int step;
-  double wtime;
   
   // Initialize MPI
   MPI_Init(&argc, &argv);

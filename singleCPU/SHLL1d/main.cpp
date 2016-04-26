@@ -9,8 +9,6 @@ int main(){
   float *h_Fm;	// Forward Fluxes 
   float *h_Fp;	// Backward Fluxes 
 
-  // printf("%p\n",&h_p); // for cheking the pointer address
-
   // First, perform 1st phase memory management tasks
   Manage_Memory(0,0, &h_p, &h_u, &h_Fp, &h_Fm);
 
