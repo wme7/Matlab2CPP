@@ -5,7 +5,7 @@
 #include <mpi.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 256 // number of cells in the x-direction 
+#define NX 1000 // number of cells in the x-direction 
 #define L 10.0 // domain length
 #define C 1.0 // c, material conductivity. Uniform assumption.
 #define TEND 0.1 // tEnd, output time
@@ -20,7 +20,7 @@
 // Testing :
 // A grid of n subgrids
   /* 
-  |    0    |    1    |     |    n    |  rank
+  |    0    |    1    |     |    n    |  mpi_rank
   |---(0)---|---(1)---| ... |---(n)---|  (gpu)
   */
 

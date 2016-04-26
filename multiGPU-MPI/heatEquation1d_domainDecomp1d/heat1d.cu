@@ -104,6 +104,20 @@ void Save_Results(real *u){
   }
 }
 
+__global__ void Set_DirichletBC(const int n, real *u, const char letter){
+  switch (letter) {
+  case 'L': { u[ 1 ]=0.0; break;}
+  case 'R': { u[ n ]=1.0; break;}
+  }
+}
+
+__global__ void Set_NeumannBC(const int n, real *u, const char letter){
+  switch (letter) {
+  case 'L': { u[ 1 ]=u[ 2 ]; break;}
+  case 'R': { u[ n ]=u[n-1]; break;}
+  }
+}
+
 void Manage_Comms(int phase, dmn domain, real **t_u, real **d_u) {
   cudaError_t Error;
   if (phase==0) {
@@ -113,12 +127,18 @@ void Manage_Comms(int phase, dmn domain, real **t_u, real **d_u) {
   }
   if (phase==1) {
     // Communicate halo regions 
-  int n = domain.nx;
-  MPI_Status status;
-  if (domain.rx >  0 ) MPI_Send(*d_u + R,R,MPI_CUSTOM_REAL,domain.rx-1,0,MPI_COMM_WORLD);         // send u[ 1 ] to   rank-1
-  if (domain.rx <SX-1) MPI_Recv(*d_u+n+R,R,MPI_CUSTOM_REAL,domain.rx+1,0,MPI_COMM_WORLD,&status); // recv u[n+1] from rank+1
-  if (domain.rx <SX-1) MPI_Send(*d_u+n  ,R,MPI_CUSTOM_REAL,domain.rx+1,1,MPI_COMM_WORLD);         // send u[ n ] to   rank+1
-  if (domain.rx >  0 ) MPI_Recv(*d_u    ,R,MPI_CUSTOM_REAL,domain.rx-1,1,MPI_COMM_WORLD,&status); // recv u[ 0 ] from rank-1
+    int n = domain.nx;
+    MPI_Status status;
+
+    // Impose BCs!
+    if (domain.rx==  0 ) Set_NeumannBC<<<1,1>>>(domain.nx,*d_u,'L'); // impose Dirichlet BC u[row  1 ]
+    if (domain.rx==SX-1) Set_NeumannBC<<<1,1>>>(domain.nx,*d_u,'R'); // impose Dirichlet BC u[row M-1]
+
+    // Communicate halo regions 
+    if (domain.rx >  0 ) MPI_Send(*d_u + R,R,MPI_CUSTOM_REAL,domain.rx-1,0,MPI_COMM_WORLD);         // send u[ 1 ] to   rank-1
+    if (domain.rx <SX-1) MPI_Recv(*d_u+n+R,R,MPI_CUSTOM_REAL,domain.rx+1,0,MPI_COMM_WORLD,&status); // recv u[n+1] from rank+1
+    if (domain.rx <SX-1) MPI_Send(*d_u+n  ,R,MPI_CUSTOM_REAL,domain.rx+1,1,MPI_COMM_WORLD);         // send u[ n ] to   rank+1
+    if (domain.rx >  0 ) MPI_Recv(*d_u    ,R,MPI_CUSTOM_REAL,domain.rx-1,1,MPI_COMM_WORLD,&status); // recv u[ 0 ] from rank-1
   }
   if (phase==2) {
     // Collect local domains from their associated GPU
