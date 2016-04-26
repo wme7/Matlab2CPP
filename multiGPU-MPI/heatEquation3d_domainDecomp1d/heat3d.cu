@@ -130,27 +130,23 @@ void Save_Results(real *u){
   }
 }
 
-// void Set_NeumannBC(real *u, const int l, const char letter){
-//   int XY=NX*NY, i, j;
-//   switch (letter) { 
-//   case 'B': { 
-//     for (j = 0; j < NY; j++) {
-//       for (i = 0; i < NX; i++) {
-// 	u[i+NX*j+XY*l-1]=u[i+NX*j+XY*l];
-//       }
-//     }
-//     break;
-//   }
-//   case 'T': { 
-//     for (j = 0; j < NY; j++) {
-//       for (i = 0; i < NX; i++) {
-// 	u[i+NX*j+XY*l+1]=u[i+NX*j+XY*l];
-//       }
-//     }
-//     break;
-//   }
-//   }
-// }
+__global__ void Set_NeumannBC(const int l, real *u, const char letter){
+  // Threads id
+  const int i = threadIdx.x + blockIdx.x*blockDim.x;
+  const int j = threadIdx.y + blockIdx.y*blockDim.y;
+  const int XY=NX*NY;
+
+  switch (letter) { 
+  case 'B': { /* bottom BC */
+    int k = 1;
+    u[i+NX*j+XY*(k-1)]=u[i+NX*j+XY*k]; break;
+  }
+  case 'T': { /* top BC */
+    int k = l;
+    u[i+NX*j+XY*(k+1)]=u[i+NX*j+XY*k]; break;
+  }
+  }
+}
 
 void Manage_Comms(int phase, dmn domain, real **t_u, real **d_u) {
   cudaError_t Error;
@@ -167,8 +163,9 @@ void Manage_Comms(int phase, dmn domain, real **t_u, real **d_u) {
     MPI_Request rqSendUp, rqSendDown, rqRecvUp, rqRecvDown;
   
     // Impose BCs!
-    //if (r==  0 ) Set_NeumannBC(*u,1,'B'); // impose Dirichlet BC u[row  1 ]
-    //if (r==SZ-1) Set_NeumannBC(*u,l,'T'); // impose Dirichlet BC u[row L-1]
+    dim3 blockSize(16,16); dim3 gridSize(1+(domain.nx-1)/16,1+(domain.ny-1)/16);
+    if (domain.rz==  0 ) Set_NeumannBC<<<gridSize,blockSize>>>(domain.nz,*d_u,'B'); // impose Dirichlet BC u[row  1 ]
+    if (domain.rz==SZ-1) Set_NeumannBC<<<gridSize,blockSize>>>(domain.nz,*d_u,'T'); // impose Dirichlet BC u[row L-1]
 
     // Communicate halo regions
     if (domain.rz <SZ-1) {
@@ -223,43 +220,10 @@ __global__ void Laplace3d(const int nz, const int rz, const real * __restrict__ 
 
 void Call_Laplace(dmn domain, real **u, real **un) {
   // Produce one iteration of the laplace operator
-  //cudaSetDevice(domain.gpu); 
-  dim3 dimBlock=dim3(8,8,8);
-  dim3 dimGrid =dim3((domain.nx+8-1)/8,(domain.ny+8-1)/8,(domain.nz+8-1)/8); 
-  Laplace3d<<<dimGrid,dimBlock>>>(domain.ny+2*R,domain.ry,*u,*un);
+  int t = 8; // number of threads in x and y directions
+  dim3 dimBlock(t,t,t); dim3 dimGrid(1+(domain.nx-1)/t,1+(domain.ny-1)/t,1+(domain.nz-1)/t); 
+  Laplace3d<<<dimGrid,dimBlock>>>(domain.nz+2*R,domain.rz,*u,*un);
   if (DEBUG) printf("CUDA error (Laplace3d) %s\n",cudaGetErrorString(cudaPeekAtLastError()));
   cudaError_t Error = cudaDeviceSynchronize();
   if (DEBUG) printf("CUDA error (Laplace3d Synchronize) %s\n",cudaGetErrorString(Error));
 }
-
-// void Laplace2d(const int nz, const real * __restrict__ u, real * __restrict__ un){
-//   // Using (i,j,k) = [i+N*j+M*N*k] indexes
-//   int i, j, k, o, n, s, e, w, t, b; 
-//   const int XY=NX*NY;
-//   for (k = 0; k < nz; k++) {
-//     for (j = 0; j < NY; j++) {
-//       for (i = 0; i < NX; i++) {
-	
-// 	o = i+ (NX*j) + (XY*k); // node( j,i,k )      n  b
-// 	n = (i==NX-1) ? o:o+NX; // node(j+1,i,k)      | /
-// 	s = (i==0)    ? o:o-NX; // node(j-1,i,k)      |/
-// 	e = (j==NY-1) ? o:o+1;  // node(j,i+1,k)  w---o---e
-// 	w = (j==0)    ? o:o-1;  // node(j,i-1,k)     /|
-// 	t =               o+XY; // node(j,i,k+1)    / |
-// 	b =               o-XY; // node(j,i,k-1)   t  s
-
-// 	// only update "interior" nodes
-// 	if (k>0 && k<nz-1) {
-// 	  un[o] = u[o] + KX*(u[e]-2*u[o]+u[w]) + KY*(u[n]-2*u[o]+u[s]) + KZ*(u[t]-2*u[o]+u[b]);
-// 	} else {
-// 	  un[o] = u[o];
-// 	}
-//       }
-//     } 
-//   }
-// }
-
-// void Call_Laplace(dmn domain, real **u, real **un){
-//   // Produce one iteration of the laplace operator
-//   Laplace2d(domain.nz+2*R,*u,*un);
-// }

@@ -166,9 +166,8 @@ __global__ void Laplace1d(const int nx, const int rx, const real * __restrict__ 
 
 void Call_Laplace(dmn domain, real **u, real **un){
   // Produce one iteration of the laplace operator
-  //cudaSetDevice(domain.gpu); 
-  int threads = 64;
-  int blocks = (domain.nx + threads - 1)/threads;
+  int threads = 128; // number of threads in x directions
+  int blockSize=tds, gridSize=(domain.nx+threads-1)/threads;
   Laplace1d<<<blocks,threads>>>(domain.nx+2*R,domain.rx,*u,*un);
   if (DEBUG) printf("CUDA error in gpu %d (Call_Laplace) = %s\n",domain.gpu,cudaGetErrorString(cudaPeekAtLastError()));
   cudaError_t Error = cudaDeviceSynchronize();

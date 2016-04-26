@@ -4,9 +4,9 @@
 #include <math.h>
 #include <mpi.h>
 
-#define DEBUG 0 // Display all error messages
-#define NX 10 // number of cells in the x-direction
-#define NY 20 // number of cells in the y-direction
+#define DEBUG 1 // Display all error messages
+#define NX 32 // number of cells in the x-direction
+#define NY 32 // number of cells in the y-direction
 #define L 10.0 // domain length
 #define W 10.0 // domain width
 #define C 1.0 // c, material conductivity. Uniform assumption.
@@ -23,7 +23,7 @@
 
 // Testing :
 // A grid of n subgrids
-  /*
+  /* bottom
   +-------+ 
   | 0 (0) | mpi_rank (gpu)
   +-------+
@@ -33,7 +33,7 @@
   +-------+
   | n (n) |
   +-------+
-  */
+   top */ 
 
 /* MPI Grid size */
 #define SX 1 // size in x <-- fix parameter!
@@ -77,4 +77,5 @@ void Manage_Comms(int phase, dmn domain, real **t_u, real **d_u);
 void Call_Laplace(dmn domain, real **d_u, real **d_un);
 void Call_IC(int IC, real *h_u);
 void Save_Results(real *h_u);
-void Print_SubDomain(dmn domain, real *h_u);
+void Print_SubDomain(dmn domain, real *t_u);
+void Print_Domain(dmn domain, real *h_u);

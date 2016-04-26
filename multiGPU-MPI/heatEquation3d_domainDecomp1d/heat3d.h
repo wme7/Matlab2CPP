@@ -4,10 +4,10 @@
 #include <math.h>
 #include <mpi.h>
 
-#define DEBUG 0 // Display all error messages
-#define NX 8 // number of cells in the x-direction
-#define NY 8 // number of cells in the y-direction
-#define NZ 12 // number of cells in the z-direction
+#define DEBUG 1 // Display all error messages
+#define NX 64 // number of cells in the x-direction
+#define NY 64 // number of cells in the y-direction
+#define NZ 128 // number of cells in the z-direction
 #define L 10.0 // domain length
 #define W 10.0 // domain width
 #define H 20.0 // domain width

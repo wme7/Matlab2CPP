@@ -147,29 +147,41 @@ void Print_SubDomain(dmn domain, real *u){
     }
     printf("\n");
   }
+  printf("\n");
 }
 
-// void Set_DirichletBC(real *u, const int j, const char letter){
-//   switch (letter) {
-//   case 'B': { /* bottom BC */
-//     float u_bl = 0.7f;
-//     float u_br = 1.0f;
-//     for (int i = 0; i < NX; i++) u[i+NX*j] = u_bl + (u_br-u_bl)*i/(NX-1); break;
-//   }
-//   case 'T': { /* top BC */
-//     float u_tl = 0.7f;
-//     float u_tr = 1.0f;
-//     for (int i = 0; i < NX; i++) u[i+NX*j] = u_tl + (u_tr-u_tl)*i/(NX-1); break;
-//   }
-//   }
-// }
+void Print_Domain(dmn domain, real *u){
+  // print result to terminal
+  for (int j = 0; j < NY; j++) {
+    for (int i = 0; i < NX; i++) {      
+      printf("%1.2f ",u[i+NX*j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
 
-// void Set_NeumannBC(real *u, const int j, const char letter){
-//   switch (letter) {
-//   case 'B': { /* u[ 1 ]=u[ 2 ] */; break;}
-//   case 'T': { /* u[ n ]=u[n-1] */; break;}
-//   }
-// }
+__global__ void Set_DirichletBC(const int m, const int rank, real * __restrict__ u){
+  // Threads id
+  const int i = blockDim.x * blockIdx.x + threadIdx.x;
+
+  if (i<NX) {
+    switch (rank) {
+      case 0: { /* bottom BC */
+        float u_bl = 0.7f;
+        float u_br = 1.0f;
+        int j = 1;
+        u[i+NX*j] = u_bl + (u_br-u_bl)*i/(NX-1); break;
+    }
+      case SY-1: { /* top BC */
+        float u_tl = 0.7f;
+        float u_tr = 1.0f;
+        int j = m;
+      u[i+NX*j] = u_tl + (u_tr-u_tl)*i/(NX-1); break;
+    }
+    }
+  }
+}
 
 void Manage_Comms(int phase, dmn domain, real **t_u, real **d_u) {
   cudaError_t Error;
@@ -186,8 +198,8 @@ void Manage_Comms(int phase, dmn domain, real **t_u, real **d_u) {
     MPI_Request rqSendUp, rqSendDown, rqRecvUp, rqRecvDown;
   
     // Impose BCs!
-    //if (r==  0 ) Set_DirichletBC(*u,1,'B'); // impose Dirichlet BC u[row  1 ]
-    //if (r==SY-1) Set_DirichletBC(*u,m,'T'); // impose Dirichlet BC u[row M-1]
+    int blockSize = 256, gridSize = 1+(n-1)/blockSize;
+    Set_DirichletBC<<<gridSize,blockSize>>>(m,domain.ry,*d_u); 
 
     // Communicate halo regions
     if (domain.ry <SY-1) {
@@ -222,11 +234,11 @@ __global__ void Laplace2d(const int ny, const int ry, const real * __restrict__ 
   const int i = threadIdx.x + blockIdx.x*blockDim.x;
   const int j = threadIdx.y + blockIdx.y*blockDim.y;
 
-  o = i+(NX*j); // node( j,i,k )      n
-  n = o + NX;   // node(j+1,i,k)      |
-  s = o - NX;   // node(j-1,i,k)   w--o--e
-  e = o + 1;    // node(j,i+1,k)      |
-  w = o - 1;    // node(j,i-1,k)      s
+  o = i+(NX*j); // node( j,i )      n
+  n = o + NX;   // node(j+1,i)      |
+  s = o - NX;   // node(j-1,i)   w--o--e
+  e = o + 1;    // node(j,i+1)      |
+  w = o - 1;    // node(j,i-1)      s
 
   // only update "interior" nodes
   if(i>0 && i<NX-1 && j>0 && j<ny-1) {
@@ -238,10 +250,9 @@ __global__ void Laplace2d(const int ny, const int ry, const real * __restrict__ 
 
 void Call_Laplace(dmn domain, real **u, real **un){
   // Produce one iteration of the laplace operator
-  //cudaSetDevice(domain.gpu); 
-  dim3 threads(32,32);
-  dim3 blocks((domain.nx+32-1)/32,(domain.ny+32-1)/32); 
-  Laplace2d<<<blocks,threads>>>(domain.ny+2*R,domain.ry,*u,*un);
+  int t = 16; // number of threads in x and y directions
+  dim3 blockSize(t,t,1); dim3 gridSize(1+(domain.nx+t-1)/t,1+(domain.ny+t-1)/t,1); 
+  Laplace2d<<<gridSize,blockSize>>>(domain.ny+2*R,domain.ry,*u,*un);
   if (DEBUG) printf("CUDA error (Laplace2d) %s\n",cudaGetErrorString(cudaPeekAtLastError()));
   cudaError_t Error = cudaDeviceSynchronize();
   if (DEBUG) printf("CUDA error (Laplace2d Synchronize) %s\n",cudaGetErrorString(Error));

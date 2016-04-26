@@ -83,8 +83,10 @@ int main ( int argc, char *argv[] ) {
   // Gather local domain back from devices
   Manage_Comms(2,domain,&t_u,&d_u); 
 
-  //if (rank==0) Print_SubDomain(domain,t_u); MPI_Barrier(MPI_COMM_WORLD);
-  //if (rank==1) Print_SubDomain(domain,t_u); MPI_Barrier(MPI_COMM_WORLD);
+  // ! Uncommment for debugging
+  // if (rank==0) Print_SubDomain(domain,t_u); MPI_Barrier(MPI_COMM_WORLD);
+  // if (rank==1) Print_SubDomain(domain,t_u); MPI_Barrier(MPI_COMM_WORLD);
+  // if (rank==0) Print_Domain(domain,h_u); MPI_Barrier(MPI_COMM_WORLD);
 
   // ROOT mode: Record the final time.
   if (rank==ROOT) {
@@ -93,7 +95,7 @@ int main ( int argc, char *argv[] ) {
   
   // Gather solutions to ROOT and write solution in ROOT mode
   MPI_Gather(t_u+R*NX, domain.size, MPI_CUSTOM_REAL, h_u, domain.size, MPI_CUSTOM_REAL, ROOT, MPI_COMM_WORLD);
-  if (rank==ROOT) Save_Results(h_u);
+  if (rank==ROOT) Save_Results(h_u); 
 
   // Free Memory
   Manage_Memory(2,domain,&h_u,&t_u,&d_u,&d_un); MPI_Barrier(MPI_COMM_WORLD);

@@ -63,6 +63,3 @@ void Manage_Comms(int phase, dmn domain, real **t_u, real **d_u );
 void Call_Laplace(dmn domain, real **d_u, real **d_un); 
 void Call_IC(int IC, real *h_u);
 void Save_Results(real *h_u);
-
-/* Declare pure C functions */
-//extern "C" void Call_Laplace(dmn domain, real **d_u, real **d_un); 
