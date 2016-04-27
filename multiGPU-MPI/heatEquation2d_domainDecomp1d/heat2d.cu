@@ -166,19 +166,17 @@ __global__ void Set_DirichletBC(const int m, const int rank, real * __restrict__
   const int i = blockDim.x * blockIdx.x + threadIdx.x;
 
   if (i<NX) {
-    switch (rank) {
-      case 0: { /* bottom BC */
+    if (rank==0) { /* bottom BC */
         float u_bl = 0.7f;
         float u_br = 1.0f;
         int j = 1;
-        u[i+NX*j] = u_bl + (u_br-u_bl)*i/(NX-1); break;
+        u[i+NX*j] = u_bl + (u_br-u_bl)*i/(NX-1); 
     }
-      case SY-1: { /* top BC */
+    if (rank==SY-1) { /* top BC */
         float u_tl = 0.7f;
         float u_tr = 1.0f;
         int j = m;
-      u[i+NX*j] = u_tl + (u_tr-u_tl)*i/(NX-1); break;
-    }
+        u[i+NX*j] = u_tl + (u_tr-u_tl)*i/(NX-1); 
     }
   }
 }
@@ -248,11 +246,11 @@ __global__ void Laplace2d(const int ny, const int ry, const real * __restrict__ 
   }
 }
 
-void Call_Laplace(dmn domain, real **u, real **un){
+extern "C" void Call_Laplace(dmn domain, real **u, real **un){
   // Produce one iteration of the laplace operator
-  int t = 16; // number of threads in x and y directions
-  dim3 blockSize(t,t,1); dim3 gridSize(1+(domain.nx+t-1)/t,1+(domain.ny+t-1)/t,1); 
-  Laplace2d<<<gridSize,blockSize>>>(domain.ny+2*R,domain.ry,*u,*un);
+  int tx=32, ty=32; // number of threads in x and y directions
+  dim3 blockSize(tx,ty); dim3 numBlocks((domain.nx+tx-1)/tx,(domain.ny+ty-1)/ty); 
+  Laplace2d<<<numBlocks,blockSize>>>(domain.ny+2*R,domain.ry,*u,*un);
   if (DEBUG) printf("CUDA error (Laplace2d) %s\n",cudaGetErrorString(cudaPeekAtLastError()));
   cudaError_t Error = cudaDeviceSynchronize();
   if (DEBUG) printf("CUDA error (Laplace2d Synchronize) %s\n",cudaGetErrorString(Error));

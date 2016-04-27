@@ -74,7 +74,7 @@ void Manage_Devices();
  dmn Manage_Domain(int rank, int npcs, int gpu);
 void Manage_Memory(int phase, dmn domain, real **h_u, real **t_u, real **d_u, real **d_un);
 void Manage_Comms(int phase, dmn domain, real **t_u, real **d_u);
-void Call_Laplace(dmn domain, real **d_u, real **d_un);
+extern "C" void Call_Laplace(dmn domain, real **d_u, real **d_un);
 void Call_IC(int IC, real *h_u);
 void Save_Results(real *h_u);
 void Print_SubDomain(dmn domain, real *t_u);

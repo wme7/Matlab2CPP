@@ -130,21 +130,21 @@ void Save_Results(real *u){
   }
 }
 
-__global__ void Set_NeumannBC(const int l, real *u, const char letter){
+__global__ void Set_NeumannBC(const int l, const int rank, real * __restrict__ u){
   // Threads id
   const int i = threadIdx.x + blockIdx.x*blockDim.x;
   const int j = threadIdx.y + blockIdx.y*blockDim.y;
   const int XY=NX*NY;
 
-  switch (letter) { 
-  case 'B': { /* bottom BC */
-    int k = 1;
-    u[i+NX*j+XY*(k-1)]=u[i+NX*j+XY*k]; break;
-  }
-  case 'T': { /* top BC */
-    int k = l;
-    u[i+NX*j+XY*(k+1)]=u[i+NX*j+XY*k]; break;
-  }
+  if (i<NX) {
+    if(rank==0) { /* bottom BC */
+      int k = 1;
+      u[i+NX*j+XY*(k-1)]=u[i+NX*j+XY*k]; 
+    }
+    if (rank==SZ-1) { /* top BC */
+      int k = l;
+      u[i+NX*j+XY*(k+1)]=u[i+NX*j+XY*k]; 
+    }
   }
 }
 
@@ -163,9 +163,9 @@ void Manage_Comms(int phase, dmn domain, real **t_u, real **d_u) {
     MPI_Request rqSendUp, rqSendDown, rqRecvUp, rqRecvDown;
   
     // Impose BCs!
-    dim3 blockSize(16,16); dim3 gridSize(1+(domain.nx-1)/16,1+(domain.ny-1)/16);
-    if (domain.rz==  0 ) Set_NeumannBC<<<gridSize,blockSize>>>(domain.nz,*d_u,'B'); // impose Dirichlet BC u[row  1 ]
-    if (domain.rz==SZ-1) Set_NeumannBC<<<gridSize,blockSize>>>(domain.nz,*d_u,'T'); // impose Dirichlet BC u[row L-1]
+    dim3 blockSize(16,16); dim3 gridSize((domain.nx+15)/16,(domain.ny+15)/16);
+    Set_NeumannBC<<<gridSize,blockSize>>>(l,domain.rz,*d_u);
+    
 
     // Communicate halo regions
     if (domain.rz <SZ-1) {
@@ -218,11 +218,11 @@ __global__ void Laplace3d(const int nz, const int rz, const real * __restrict__ 
   }
 }
 
-void Call_Laplace(dmn domain, real **u, real **un) {
+extern "C" void Call_Laplace(dmn domain, real **u, real **un) {
   // Produce one iteration of the laplace operator
-  int t = 8; // number of threads in x and y directions
-  dim3 dimBlock(t,t,t); dim3 dimGrid(1+(domain.nx-1)/t,1+(domain.ny-1)/t,1+(domain.nz-1)/t); 
-  Laplace3d<<<dimGrid,dimBlock>>>(domain.nz+2*R,domain.rz,*u,*un);
+  int tx=8, ty=8, tz=8; // number of threads in x and y directions
+  dim3 blockSize(tx,ty,tz); dim3 numBlocks((domain.nx+tx-1)/tx,(domain.ny+ty-1)/ty,(domain.nz+tz-1)/tz); 
+  Laplace3d<<<numBlocks,blockSize>>>(domain.nz+2*R,domain.rz,*u,*un);
   if (DEBUG) printf("CUDA error (Laplace3d) %s\n",cudaGetErrorString(cudaPeekAtLastError()));
   cudaError_t Error = cudaDeviceSynchronize();
   if (DEBUG) printf("CUDA error (Laplace3d Synchronize) %s\n",cudaGetErrorString(Error));

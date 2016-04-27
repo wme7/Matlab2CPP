@@ -75,8 +75,8 @@ int main ( int argc, char *argv[] ) {
     if (rank==ROOT && step%10000==0) printf("  Step %d of %d\n",step,(int)NO_STEPS);
     
     // Exchange Boundaries and compute stencil
-    Call_Laplace(domain,&d_u,&d_un); Manage_Comms(1,domain,&t_u,&d_un); // 1st iter
-    Call_Laplace(domain,&d_un,&d_u); Manage_Comms(1,domain,&t_u,&d_u ); // 2nd iter
+    Call_Laplace(domain,&d_u,&d_un); //Manage_Comms(1,domain,&t_u,&d_un); // 1st iter
+    Call_Laplace(domain,&d_un,&d_u); //Manage_Comms(1,domain,&t_u,&d_u ); // 2nd iter
   }
   MPI_Barrier(MPI_COMM_WORLD); 
 
@@ -84,8 +84,8 @@ int main ( int argc, char *argv[] ) {
   Manage_Comms(2,domain,&t_u,&d_u); 
 
   // ! Uncommment for debugging
-  // if (rank==0) Print_SubDomain(domain,t_u); MPI_Barrier(MPI_COMM_WORLD);
-  // if (rank==1) Print_SubDomain(domain,t_u); MPI_Barrier(MPI_COMM_WORLD);
+  if (rank==0) Print_SubDomain(domain,t_u); MPI_Barrier(MPI_COMM_WORLD);
+  if (rank==1) Print_SubDomain(domain,t_u); MPI_Barrier(MPI_COMM_WORLD);
   // if (rank==0) Print_Domain(domain,h_u); MPI_Barrier(MPI_COMM_WORLD);
 
   // ROOT mode: Record the final time.
