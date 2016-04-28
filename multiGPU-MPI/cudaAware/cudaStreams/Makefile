@@ -1,4 +1,4 @@
-all: test1 test1_wflag test2 test2_wflag test3 test4 test5 test6 test7 test8 test9
+all: test1 test1_wflag test2 test2_wflag test3 test4 test5 test6 test7 test8 test9 test10
 
 test1: example1.cu
 	nvcc $< -o $@.run
@@ -31,6 +31,9 @@ test8: example8.cu
 	nvcc $< -o $@.run
 
 test9: example9.cu
+	nvcc $< -o $@.run
+
+test10: example10.cu
 	nvcc $< -o $@.run
 
 clean: 
