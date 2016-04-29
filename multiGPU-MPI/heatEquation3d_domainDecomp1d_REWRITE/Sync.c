@@ -170,7 +170,7 @@ int main(int argc, char** argv)
     CopyBoundaryRegionToGhostCell(thread_blocks_halo, threads_per_block, d_s_Unews, d_right_send_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 0);
     checkCuda(cudaMemcpy2D(right_send_buffer, dt_size*(Nx+2), d_right_send_buffer, pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(RADIUS), cudaMemcpyDefault));
 
-    MPI_Isend(right_send_buffer, (Nx+2)*(Ny+2)*(RADIUS), MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD, &right_send_request[rank]);
+    MPI_Isend(right_send_buffer, (Nx+2)*(Ny+2)*(RADIUS), MPI_CUSTOM_REAL, rank+1, 0, MPI_COMM_WORLD, &right_send_request[rank]);
   }
 
   // Send data to 0-2 from 1-3
@@ -178,17 +178,17 @@ int main(int argc, char** argv)
     CopyBoundaryRegionToGhostCell(thread_blocks_halo, threads_per_block, d_s_Unews, d_left_send_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 1);
     checkCuda(cudaMemcpy2D(left_send_buffer, dt_size*(Nx+2), d_left_send_buffer, pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(RADIUS), cudaMemcpyDefault));
 
-    MPI_Isend(left_send_buffer, (Nx+2)*(Ny+2)*(RADIUS), MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &left_send_request[rank]);
+    MPI_Isend(left_send_buffer, (Nx+2)*(Ny+2)*(RADIUS), MPI_CUSTOM_REAL, rank-1, 1, MPI_COMM_WORLD, &left_send_request[rank]);
   }
 
   // Receive data from 0-2
   if (rank > 0) {
-    MPI_Irecv(left_receive_buffer, (Nx+2)*(Ny+2)*(RADIUS), MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &left_receive_request[rank]);
+    MPI_Irecv(left_receive_buffer, (Nx+2)*(Ny+2)*(RADIUS), MPI_CUSTOM_REAL, rank-1, 0, MPI_COMM_WORLD, &left_receive_request[rank]);
   }
 
   // Receive data from 0-2
   if (rank < numberOfProcesses-1) {
-    MPI_Irecv(right_receive_buffer, (Nx+2)*(Ny+2)*(RADIUS), MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &right_receive_request[rank]);
+    MPI_Irecv(right_receive_buffer, (Nx+2)*(Ny+2)*(RADIUS), MPI_CUSTOM_REAL, rank+1, 1, MPI_COMM_WORLD, &right_receive_request[rank]);
   }
 
   // Receive data from 0-2
@@ -236,13 +236,13 @@ int main(int argc, char** argv)
   MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
 
   // Gather results from subdomains
-  MPI_CHECK(MPI_Isend(h_s_Uolds, (Nx+2)*(Ny+2)*(_Nz+2), MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, &gather_send_request[rank]));
+  MPI_CHECK(MPI_Isend(h_s_Uolds, (Nx+2)*(Ny+2)*(_Nz+2), MPI_CUSTOM_REAL, 0, 0, MPI_COMM_WORLD, &gather_send_request[rank]));
 
   if (rank == 0)
   {
     for (int i = 0; i < numberOfProcesses; i++)
     {
-      MPI_CHECK(MPI_Recv(h_s_rbuf[i], (Nx+2)*(Ny+2)*(_Nz+2), MPI_DOUBLE, i, 0, MPI_COMM_WORLD, &status[rank]));
+      MPI_CHECK(MPI_Recv(h_s_rbuf[i], (Nx+2)*(Ny+2)*(_Nz+2), MPI_CUSTOM_REAL, i, 0, MPI_COMM_WORLD, &status[rank]));
       merge_domains(h_s_rbuf[i], h_Uold, Nx, Ny, _Nz, i);
     }
   }

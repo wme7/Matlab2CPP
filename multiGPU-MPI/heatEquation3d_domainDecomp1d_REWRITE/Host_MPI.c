@@ -225,6 +225,28 @@ void print2D(REAL *T, const unsigned int Nx, const unsigned int Ny)
 	printf("\n");
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Saves a flattened 3D array to file
+////////////////////////////////////////////////////////////////////////////////
+void Save3D(REAL *T, const unsigned int Nx, const unsigned int Ny, const unsigned int Nz)
+{
+  // print result to txt file
+  FILE *pFile = fopen("result.txt", "w");  
+  const int XY=Nx*Ny;
+  if (pFile != NULL) {
+    for (unsigned int k = 0;k < Nz; k++) {
+      for (unsigned int j = 0; j < Ny; j++) {
+		for (unsigned int i = 0; i < Nx; i++) {      
+			fprintf(pFile, "%d\t %d\t %d\t %g\n",k,j,i,T[i+Nx*j+XY*k]);
+		}
+      }
+    }
+    fclose(pFile);
+  } else {
+    printf("Unable to save to file\n");
+  }
+}
+
 /////////////////////////////
 // Function to initialize MPI
 /////////////////////////////
