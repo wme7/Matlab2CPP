@@ -93,8 +93,7 @@ int main ( int argc, char *argv[] ) {
   if (rank==ROOT) Save_Results(h_u);
 
   // Free Memory
-  Manage_Memory(2,domain,&h_u,&t_u,&d_u,&d_un); 
-  MPI_Barrier(MPI_COMM_WORLD);
+  Manage_Memory(2,domain,&h_u,&t_u,&d_u,&d_un); MPI_Barrier(MPI_COMM_WORLD);
 
   // Terminate MPI.
   MPI_Finalize();

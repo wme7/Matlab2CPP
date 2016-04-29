@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<session version="2" name="test10_v2.nvprof" hscale="2.2458882967448164E-5">
+<expert><columnprops></columnprops>
+</expert>
+<analysis guided="true"></analysis>
+<expertsystem current="INTRO"><visited><stage name="INTRO"/></visited></expertsystem>
+<vruler width="200"/>
+<hruler>
+</hruler>
+<timelinestate>
+<timeline pathname="test6.run" kind="PROCESS" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="test6.run/3336787776" kind="THREAD" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="test6.run/3336787776/Runtime API" kind="RUNTIME" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="test6.run/3336787776/Driver API" kind="DRIVER" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="test6.run/Profiling Overhead" kind="OVERHEADS" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c" kind="DEVICE" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1" kind="CONTEXT" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/MemCpy (HtoD)" kind="MEMCPY_HTOD" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/MemCpy (DtoH)" kind="MEMCPY_DTOH" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/Compute" kind="KERNELS" containerstate="CLOSED" filtered="false"/>
+<timeline pathname="Tesla K20c/1/Compute/kernelFunction(double*, unsigned int)" kind="KERNEL" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/Streams" kind="STREAMS" containerstate="CLOSED" filtered="false"/>
+<timeline pathname="Tesla K20c/1/Streams/7" kind="STREAM" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Quadro K620" kind="DEVICE" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Quadro K620/2" kind="CONTEXT" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Quadro K620/2/MemCpy (HtoD)" kind="MEMCPY_HTOD" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Quadro K620/2/MemCpy (DtoH)" kind="MEMCPY_DTOH" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Quadro K620/2/Compute" kind="KERNELS" containerstate="CLOSED" filtered="false"/>
+<timeline pathname="Quadro K620/2/Compute/kernelFunction(double*, unsigned int)" kind="KERNEL" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Quadro K620/2/Streams" kind="STREAMS" containerstate="CLOSED" filtered="false"/>
+<timeline pathname="Quadro K620/2/Streams/14" kind="STREAM" containerstate="OPEN_ALL" filtered="false"/>
+</timelinestate>
+<timelinepdm>
+<pdm></pdm>
+</timelinepdm>
+<analysispdm>
+</analysispdm>
+</session>

@@ -83,8 +83,10 @@ int main ( int argc, char *argv[] ) {
   // Gather local domain back from devices
   Manage_Comms(2,domain,&t_u,&d_u);
 
-  //if (rank==0) Print_SubDomain(domain,t_u); MPI_Barrier(MPI_COMM_WORLD);
-  //if (rank==1) Print_SubDomain(domain,t_u); MPI_Barrier(MPI_COMM_WORLD);
+  // ! Uncommment for debugging
+  // if (rank==0) Print_SubDomain(domain,t_u); MPI_Barrier(MPI_COMM_WORLD);
+  // if (rank==1) Print_SubDomain(domain,t_u); MPI_Barrier(MPI_COMM_WORLD);
+  // if (rank==0) Print_Domain(domain,h_u); MPI_Barrier(MPI_COMM_WORLD);
 
   // ROOT mode: Record the final time.
   if (rank==ROOT) {
