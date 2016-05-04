@@ -313,7 +313,7 @@ int main(int argc, char** argv)
 #if defined(DEBUG) || defined(_DEBUG)
 	if (rank == 0)
 	{
-		//cpu_heat3D(u_new, u_old, c0, c1, max_iters, Nx, Ny, Nz);
+		cpu_heat3D(u_new, u_old, c0, c1, max_iters, Nx, Ny, Nz);
 	}
 #endif
 
@@ -323,7 +323,7 @@ int main(int argc, char** argv)
 		PrintSummary("3D Heat (7-pt)", "Plane sweeping", compute_timer, HtD_timer, DtH_timer, gflops, max_iters, Nx);
 
 		REAL t = max_iters * dt;
-		//CalcError(h_Uold, u_old, t, h, Nx, Ny, Nz);
+		CalcError(h_Uold, u_old, t, h, Nx, Ny, Nz);
 	}
 
 	Finalize();
