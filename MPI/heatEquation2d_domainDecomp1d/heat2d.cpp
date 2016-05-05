@@ -81,7 +81,7 @@ void Call_IC(const int IC, double * __restrict u0){
 	if (j==0)    u0[o] = u_bl + (u_br-u_bl)*i/(NX-1); // bottom
 	if (j==NY-1) u0[o] = u_tl + (u_tr-u_tl)*i/(NX-1); // top
 	if (i==0)    u0[o] = u_bl + (u_tl-u_bl)*j/(NY-1); // left
-	if (i==NX-1) u0[o] = u_br + (u_tr-u_br)*j/(NY-1); // right
+	if (i==NX-1) u0[o] = u_tr + (u_tr-u_br)*j/(NY-1); // right
       }
     }
     break;

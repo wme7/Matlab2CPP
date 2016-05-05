@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 	ECCCheck(rank);
 
 	// Define constants
-	const REAL L = 10.0;
+	const REAL L = 1.0;
 	const REAL h = L/(Nx+1);
 	const REAL dt = h*h/6.0;
 	const REAL beta = dt/(h*h);
