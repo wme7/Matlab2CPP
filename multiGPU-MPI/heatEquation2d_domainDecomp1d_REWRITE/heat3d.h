@@ -26,15 +26,13 @@
 /*************/
 /* Constants */
 /*************/
-#define DEBUG
-#define RADIUS 1
+#define DEBUG 
+#define WRITE 0
 #define k_loop 16
 #define FLOPS 8.0
 #define swap(T, a, b) do { T tmp = a; a = b; b = tmp; } while (0)
-#define INITIAL_DISTRIBUTION(i, j, k, h) sin(M_PI*i*h) * sin(M_PI*j*h) * sin(M_PI*k*h)
-#define R 1 // radius or width of the hallo region
+#define SINE_DISTRIBUTION(i, j, k, dx, dy, dz) sin(M_PI*i*dx)*sin(M_PI*j*dy)*sin(M_PI*k*dz)
 #define ROOT 0 // define root process
-#define PI 3.1415926535897932f // PI number
 #define MPI_CHECK(call) \
     if((call) != MPI_SUCCESS) { printf("MPI error calling \""#call"\"\n"); exit(-1); }
 
@@ -62,16 +60,18 @@
 void InitializeMPI(int* argc, char*** argv, int* rank, int* numberOfProcesses);
 void Finalize();
 
-void init(REAL *u_old, REAL *u_new, const REAL h, unsigned int Nx, unsigned int Ny, unsigned int Nz);
-void init_subdomain(REAL *h_s_uold, REAL *h_uold, unsigned int Nx, unsigned int Ny, unsigned int Nz, unsigned int i);
-void merge_domains(REAL *h_s_Uold, REAL *h_Uold, int Nx, int Ny, int _Nz, const int i);
-void cpu_heat3D(REAL * __restrict__ u_new, REAL * __restrict__ u_old, const REAL c0, const REAL c1, const unsigned int max_iters, const unsigned int Nx, const unsigned int Ny, const unsigned int Nz);
+void init(REAL *u, const REAL dx, const REAL dy, const REAL dz, unsigned int nx, unsigned int ny, unsigned int nz);
+void init_subdomain(REAL *h_s_u, REAL *h_u, unsigned int nx, unsigned int ny, unsigned int nz, unsigned int rank);
+void merge_domains(REAL *h_s_u, REAL *h_u, unsigned int nx, unsigned int ny, unsigned int _nz, unsigned int rank);
 float CalcGflops(float computeTimeInSeconds, unsigned int iterations, unsigned int nx, unsigned int ny, unsigned int nz);
-void PrintSummary(const char* kernelName, const char* optimization, double computeTimeInSeconds, double hostToDeviceTimeInSeconds, double deviceToHostTimeInSeconds, float gflops, const int computeIterations, const int nx);
-void CalcError(REAL *uOld, REAL *uNew, const REAL t, const REAL h, unsigned int nx, unsigned int ny, unsigned int nz);
-void Save3D(REAL *T, const unsigned int Nx, const unsigned int Ny, const unsigned int Nz);
-void print3D(REAL *T, const unsigned int Nx, const unsigned int Ny, const unsigned int Nz);
-void print2D(REAL *T, const unsigned int Nx, const unsigned int Ny);
+void PrintSummary(const char* kernelName, const char* optimization, double outputTimeInSeconds, double cpuTimeInSeconds, double hostToDeviceTimeInSeconds, double deviceToHostTimeInSeconds, float gflops, const int computeIterations, const int nx, const int ny, const int nz);
+void CalcError(REAL *u, const REAL t, const REAL dx, const REAL dy, const REAL dz, unsigned int nx, unsigned int ny, unsigned int nz);
+void Save3D(REAL *u, const unsigned int nx, const unsigned int ny, const unsigned int nz);
+void Save2D(REAL *u, const unsigned int nx, const unsigned int ny);
+void Save1D(REAL *u, const unsigned int nx);
+void print3D(REAL *u, const unsigned int nx, const unsigned int ny, const unsigned int nz);
+void print2D(REAL *u, const unsigned int nx, const unsigned int ny);
+void print1D(REAL *u, const unsigned int nx);
 
 /*******************/
 /* Device wrappers */
@@ -81,7 +81,7 @@ extern "C"
 	int DeviceScan();
 	void AssignDevices(int rank);
 	void ECCCheck(int rank);
-	void CopyToConstantMemory(const REAL c0, const REAL c1);
+	void CopyToConstantMemory(const REAL c0, const REAL c1, const REAL c2);
 	int getBlock(int n, int block);
 	void ComputeInnerPoints(dim3 thread_blocks, dim3 threads_per_block, REAL* d_s_Unews, REAL* d_s_Uolds, int pitch, unsigned int Nx, unsigned int Ny, unsigned int _Nz);
 	void ComputeInnerPointsAsync(dim3 thread_blocks_halo, dim3 threads_per_block, cudaStream_t aStream, REAL* d_s_Unews, REAL* d_s_Uolds,

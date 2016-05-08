@@ -2,9 +2,9 @@
 
 #define checkCuda(error) __checkCuda(error, __FILE__, __LINE__)
 
-////////////////////////////////////////////////////////////////////////////////
-// A method for checking error in CUDA calls
-////////////////////////////////////////////////////////////////////////////////
+/*********************************************/
+/* A method for checking error in CUDA calls */
+/*********************************************/
 inline void __checkCuda(cudaError_t error, const char *file, const int line)
 {
 	#if defined(DEBUG) || defined(_DEBUG)
@@ -18,27 +18,32 @@ inline void __checkCuda(cudaError_t error, const char *file, const int line)
 	return;
 }
 
-///////////////////////
-// Main program entry
-///////////////////////
+/**********************/
+/* Main program entry */
+/**********************/
 int main(int argc, char** argv)
 {
-	unsigned int max_iters, Nx, Ny, Nz, blockX, blockY, blockZ;
+	REAL C;
+  	unsigned int L, W, H, Nx, Ny, Nz, max_iters, blockX, blockY, blockZ;
 	int rank, numberOfProcesses;
 
 	if (argc == 8)
 	{
-		Nx = atoi(argv[1]);
-		Ny = atoi(argv[2]);
-		Nz = atoi(argv[3]);
-		max_iters = atoi(argv[4]);
-		blockX = atoi(argv[5]);
-		blockY = atoi(argv[6]);
-		blockZ = atoi(argv[7]);
+		C = atof(argv[1]); // conductivity, here it is assumed: Cx = Cy = Cz = C.
+		L = atoi(argv[2]); // domain lenght
+		W = atoi(argv[3]); // domain width 
+		H = atoi(argv[4]); // domain height
+		Nx = atoi(argv[5]); // number cells in x-direction
+		Ny = atoi(argv[6]); // number cells in x-direction
+		Nz = atoi(argv[7]); // number cells in x-direction
+		max_iters = atoi(argv[8]); // number of iterations / time steps
+		blockX = atoi(argv[9]); // block size in the i-direction
+		blockY = atoi(argv[10]); // block size in the j-direction
+		blockZ = atoi(argv[11]); // block size in the k-direction
 	}
 	else
 	{
-		printf("Usage: %s nx ny nz i block_x block_y block_z\n", argv[0]);
+		printf("Usage: %s diffCoef L W H nx ny nz i block_x block_y block_z\n", argv[0]);
 		exit(1);
 	}
 
@@ -46,16 +51,20 @@ int main(int argc, char** argv)
 	AssignDevices(rank);
 	ECCCheck(rank);
 
-	// Define constants
-	const REAL L = 1.0;
-	const REAL h = L/(Nx+1);
-	const REAL dt = h*h/6.0;
-	const REAL beta = dt/(h*h);
-	const REAL c0 = beta;
-	const REAL c1 = (1-6*beta);
+	unsigned int R;	REAL dx, dy, dz, dt, kx, ky, kz, tFinal;
+
+	dx = (REAL)L/Nx; // dx, cell size
+	dy = (REAL)W/Ny; // dy, cell size
+	dz = (REAL)H/Nz; // dz, cell size
+	dt = 1/(2*C*(1/dx/dx+1/dy/dy+1/dz/dz)); // dt, fix time step size
+	kx = C*dt/(dx*dx); // numerical conductivity
+	ky = C*dt/(dy*dy); // numerical conductivity
+	kz = C*dt/(dz*dz); // numerical conductivity
+	tFinal = dt*max_iters; printf("Final time: %g\n",tFinal);
+	R = 1; // halo regions width (in cells size)
 
 	// Copy constants to Constant Memory on the GPUs
-	CopyToConstantMemory(c0, c1);
+	CopyToConstantMemory(kx, ky, kz);
 
 	// Decompose along the z-axis
 	const int _Nz = Nz/numberOfProcesses;
@@ -68,12 +77,10 @@ int main(int argc, char** argv)
 	u_new = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(Nz+2));
 	u_old = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(Nz+2));
 
-	if (rank == 0)
-	{
-	h_Uold = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(Nz+2)); 
-	}
+	if (rank==ROOT) h_Uold = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(Nz+2)); 
 
-	init(u_old, u_new, h, Nx, Ny, Nz);
+	init(u_new, dx, dy, dz, Nx+2, Ny+2, Nz+2);
+	init(u_old, dx, dy, dz, Nx+2, Ny+2, Nz+2);
 
 	// Allocate and generate host subdomains
 	REAL *h_s_Uolds, *h_s_Unews, *h_s_rbuf[numberOfProcesses];
@@ -94,20 +101,20 @@ int main(int argc, char** argv)
   }
 #endif
 
-    right_send_buffer = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(RADIUS));
-    left_send_buffer = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(RADIUS));
-    right_receive_buffer = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(RADIUS));
-    left_receive_buffer = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(RADIUS));
+    right_send_buffer = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(R));
+    left_send_buffer = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(R));
+    right_receive_buffer = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(R));
+    left_receive_buffer = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(R));
 
     checkCuda(cudaHostAlloc((void**)&h_s_Unews, dt_size*(Nx+2)*(Ny+2)*(_Nz+2), cudaHostAllocPortable));
     checkCuda(cudaHostAlloc((void**)&h_s_Uolds, dt_size*(Nx+2)*(Ny+2)*(_Nz+2), cudaHostAllocPortable));
 
-    checkCuda(cudaHostAlloc((void**)&right_send_buffer, dt_size*(Nx+2)*(Ny+2)*(RADIUS), cudaHostAllocPortable));
-    checkCuda(cudaHostAlloc((void**)&left_send_buffer, dt_size*(Nx+2)*(Ny+2)*(RADIUS), cudaHostAllocPortable));
-    checkCuda(cudaHostAlloc((void**)&right_receive_buffer, dt_size*(Nx+2)*(Ny+2)*(RADIUS), cudaHostAllocPortable));
-    checkCuda(cudaHostAlloc((void**)&left_receive_buffer, dt_size*(Nx+2)*(Ny+2)*(RADIUS), cudaHostAllocPortable));
+    checkCuda(cudaHostAlloc((void**)&right_send_buffer, dt_size*(Nx+2)*(Ny+2)*(R), cudaHostAllocPortable));
+    checkCuda(cudaHostAlloc((void**)&left_send_buffer, dt_size*(Nx+2)*(Ny+2)*(R), cudaHostAllocPortable));
+    checkCuda(cudaHostAlloc((void**)&right_receive_buffer, dt_size*(Nx+2)*(Ny+2)*(R), cudaHostAllocPortable));
+    checkCuda(cudaHostAlloc((void**)&left_receive_buffer, dt_size*(Nx+2)*(Ny+2)*(R), cudaHostAllocPortable));
 
-    init_subdomain(h_s_Uolds, u_old, Nx, Ny, _Nz, rank);
+    init_subdomain(h_s_Uolds, u_old, Nx+2, Ny+2, _Nz+2, rank);
 
 	// GPU stream operations
 	cudaStream_t compute_stream;
@@ -130,10 +137,10 @@ int main(int argc, char** argv)
     checkCuda(cudaMallocPitch((void**)&d_s_Uolds, &pitch_bytes, dt_size*(Nx+2), (Ny+2)*(_Nz+2)));
     checkCuda(cudaMallocPitch((void**)&d_s_Unews, &pitch_bytes, dt_size*(Nx+2), (Ny+2)*(_Nz+2)));
 
-    checkCuda(cudaMallocPitch((void**)&d_left_send_buffer, &pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(RADIUS)));
-    checkCuda(cudaMallocPitch((void**)&d_left_receive_buffer, &pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(RADIUS)));
-    checkCuda(cudaMallocPitch((void**)&d_right_send_buffer, &pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(RADIUS)));
-    checkCuda(cudaMallocPitch((void**)&d_right_receive_buffer, &pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(RADIUS)));
+    checkCuda(cudaMallocPitch((void**)&d_left_send_buffer, &pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R)));
+    checkCuda(cudaMallocPitch((void**)&d_left_receive_buffer, &pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R)));
+    checkCuda(cudaMallocPitch((void**)&d_right_send_buffer, &pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R)));
+    checkCuda(cudaMallocPitch((void**)&d_right_receive_buffer, &pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R)));
 
 	// Copy subdomains from host to device and get walltime
 	double HtD_timer = 0.;
@@ -175,7 +182,7 @@ int main(int argc, char** argv)
     compute_timer -= MPI_Wtime();
     MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
 
-	for(unsigned int iterations = 0; iterations < max_iters; iterations++)
+	for(unsigned int iterations = 1; iterations < max_iters; iterations++)
 	{
 		// Compute right boundary on devices 0-2, send to devices 1-n-1
 		if (rank < numberOfProcesses-1)
@@ -186,10 +193,10 @@ int main(int argc, char** argv)
 			ComputeInnerPointsAsync(thread_blocks_halo, threads_per_block, right_send_stream, d_s_Unews, d_s_Uolds, pitch, Nx, Ny, _Nz, kstart, kstop);
 			CopyBoundaryRegionToGhostCellAsync(thread_blocks_halo, threads_per_block, right_send_stream, d_s_Unews, d_right_send_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 0);
 
-			checkCuda(cudaMemcpy2DAsync(right_send_buffer, dt_size*(Nx+2), d_right_send_buffer, pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(RADIUS), cudaMemcpyDefault, right_send_stream));
+			checkCuda(cudaMemcpy2DAsync(right_send_buffer, dt_size*(Nx+2), d_right_send_buffer, pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R), cudaMemcpyDefault, right_send_stream));
 			checkCuda(cudaStreamSynchronize(right_send_stream));
 
-			MPI_CHECK(MPI_Isend(right_send_buffer, (Nx+2)*(Ny+2)*(RADIUS), MPI_CUSTOM_REAL, rank+1, 0, MPI_COMM_WORLD, &right_send_request[rank]));
+			MPI_CHECK(MPI_Isend(right_send_buffer, (Nx+2)*(Ny+2)*(R), MPI_CUSTOM_REAL, rank+1, 0, MPI_COMM_WORLD, &right_send_request[rank]));
 		}
 
 		if (rank > 0)
@@ -200,10 +207,10 @@ int main(int argc, char** argv)
 			ComputeInnerPointsAsync(thread_blocks_halo, threads_per_block, left_send_stream, d_s_Unews, d_s_Uolds, pitch, Nx, Ny, _Nz, kstart, kstop);
 			CopyBoundaryRegionToGhostCellAsync(thread_blocks_halo, threads_per_block, left_send_stream, d_s_Unews, d_left_send_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 1);
 
-			checkCuda(cudaMemcpy2DAsync(left_send_buffer, dt_size*(Nx+2), d_left_send_buffer, pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(RADIUS), cudaMemcpyDefault, left_send_stream));
+			checkCuda(cudaMemcpy2DAsync(left_send_buffer, dt_size*(Nx+2), d_left_send_buffer, pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R), cudaMemcpyDefault, left_send_stream));
 			checkCuda(cudaStreamSynchronize(left_send_stream));
 
-			MPI_CHECK(MPI_Isend(left_send_buffer, (Nx+2)*(Ny+2)*(RADIUS), MPI_CUSTOM_REAL, rank-1, 1, MPI_COMM_WORLD, &left_send_request[rank]));
+			MPI_CHECK(MPI_Isend(left_send_buffer, (Nx+2)*(Ny+2)*(R), MPI_CUSTOM_REAL, rank-1, 1, MPI_COMM_WORLD, &left_send_request[rank]));
 		}
 
 		// Compute inner points for device 0
@@ -236,13 +243,13 @@ int main(int argc, char** argv)
 		// Receive data from 0-2
 		if (rank < numberOfProcesses-1)
 		{
-			MPI_CHECK(MPI_Irecv(right_receive_buffer, (Nx+2)*(Ny+2)*(RADIUS), MPI_CUSTOM_REAL, rank+1, 1, MPI_COMM_WORLD, &right_receive_request[rank]));
+			MPI_CHECK(MPI_Irecv(right_receive_buffer, (Nx+2)*(Ny+2)*(R), MPI_CUSTOM_REAL, rank+1, 1, MPI_COMM_WORLD, &right_receive_request[rank]));
 		}
 
 		// Receive data from 1-3
 		if (rank > 0)
 		{
-			MPI_CHECK(MPI_Irecv(left_receive_buffer, (Nx+2)*(Ny+2)*(RADIUS), MPI_CUSTOM_REAL, rank-1, 0, MPI_COMM_WORLD, &left_receive_request[rank]));
+			MPI_CHECK(MPI_Irecv(left_receive_buffer, (Nx+2)*(Ny+2)*(R), MPI_CUSTOM_REAL, rank-1, 0, MPI_COMM_WORLD, &left_receive_request[rank]));
 		}
 
 		// Receive data from 0-2
@@ -250,7 +257,7 @@ int main(int argc, char** argv)
 		{
 			MPI_CHECK(MPI_Wait(&right_receive_request[rank], MPI_STATUS_IGNORE));
 
-			checkCuda(cudaMemcpy2DAsync(d_right_receive_buffer, pitch_gc_bytes, right_receive_buffer, dt_size*(Nx+2), dt_size*(Nx+2), ((Ny+2)*(RADIUS)), cudaMemcpyDefault, right_receive_stream));
+			checkCuda(cudaMemcpy2DAsync(d_right_receive_buffer, pitch_gc_bytes, right_receive_buffer, dt_size*(Nx+2), dt_size*(Nx+2), ((Ny+2)*(R)), cudaMemcpyDefault, right_receive_stream));
 			CopyGhostCellToBoundaryRegionAsync(thread_blocks_halo, threads_per_block, right_receive_stream, d_s_Unews, d_right_receive_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 0);
 		}
 
@@ -259,7 +266,7 @@ int main(int argc, char** argv)
 		{
 			MPI_CHECK(MPI_Wait(&left_receive_request[rank], MPI_STATUS_IGNORE));
 
-			checkCuda(cudaMemcpy2DAsync(d_left_receive_buffer, pitch_gc_bytes, left_receive_buffer, dt_size*(Nx+2), dt_size*(Nx+2), ((Ny+2)*(RADIUS)), cudaMemcpyDefault, left_receive_stream));
+			checkCuda(cudaMemcpy2DAsync(d_left_receive_buffer, pitch_gc_bytes, left_receive_buffer, dt_size*(Nx+2), dt_size*(Nx+2), ((Ny+2)*(R)), cudaMemcpyDefault, left_receive_stream));
 			CopyGhostCellToBoundaryRegionAsync(thread_blocks_halo, threads_per_block, left_receive_stream, d_s_Unews, d_left_receive_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 1);
 		}
 
@@ -303,29 +310,29 @@ int main(int argc, char** argv)
 		for (int i = 0; i < numberOfProcesses; i++)
 		{
 			MPI_CHECK(MPI_Recv(h_s_rbuf[i], (Nx+2)*(Ny+2)*(_Nz+2), MPI_CUSTOM_REAL, i, 0, MPI_COMM_WORLD, &status[rank]));
-			merge_domains(h_s_rbuf[i], h_Uold, Nx, Ny, _Nz, i);
+			merge_domains(h_s_rbuf[i], h_Uold, Nx+2, Ny+2, _Nz+2, i);
 		}
 		// print solution to file
-		Save3D(h_Uold, Nx, Ny, Nz);
+		if (WRITE) Save3D(h_Uold, Nx, Ny, Nz);
 	}
 
 	// Calculate on host
 #if defined(DEBUG) || defined(_DEBUG)
 	if (rank == 0)
 	{
-		cpu_heat3D(u_new, u_old, c0, c1, max_iters, Nx, Ny, Nz);
+		//cpu_heat3D(u_new, u_old, c0, c1, max_iters, Nx, Ny, Nz);
 	}
 #endif
 
 	if (rank == 0)
 	{
 		float gflops = CalcGflops(compute_timer, max_iters, Nx, Ny, Nz);
-		PrintSummary("3D Heat (7-pt)", "Plane sweeping", compute_timer, HtD_timer, DtH_timer, gflops, max_iters, Nx);
+		PrintSummary("HeatEq3D (7-pt)", "Plane sweeping", compute_timer, tFinal, HtD_timer, DtH_timer, gflops, max_iters, Nx+2, Ny+2, Nz+2);
 
-		REAL t = max_iters * dt;
-		CalcError(h_Uold, u_old, t, h, Nx, Ny, Nz);
+		//CalcError(h_Uold, u_old, t, h, Nx+2, Ny+2, Nz+2);
 	}
 
+	// Finalize MPI
 	Finalize();
 
   // Free device memory

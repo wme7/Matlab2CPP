@@ -26,12 +26,13 @@ inline void __checkCuda(cudaError_t error, const char *file, const int line)
 ////////////////////////////////////////////////////////////////////////////////
 __global__ void copy_br_to_gc(REAL * __restrict u_news, REAL * __restrict gc_unews, const unsigned int Nx, const unsigned int Ny, const unsigned int _Nz, const unsigned int pitch, const unsigned int gc_pitch, const unsigned int p)
 {
-	unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
-	unsigned int j = threadIdx.y + blockIdx.y * blockDim.y;
+	unsigned int i, j ,k;
+	i = threadIdx.x + blockIdx.x * blockDim.x;
+	j = threadIdx.y + blockIdx.y * blockDim.y;
 
 	unsigned int k_off = pitch*(Ny+2);
 
-	unsigned int k = _Nz + p*(1-_Nz);
+	k = _Nz + p*(1-_Nz);
 
 	unsigned int idx3d = i + j * pitch + k * k_off;
 	unsigned int idx2d = j * gc_pitch + i;
@@ -47,10 +48,11 @@ __global__ void copy_br_to_gc(REAL * __restrict u_news, REAL * __restrict gc_une
 ////////////////////////////////////////////////////////////////////////////////
 __global__ void copy_gc_to_br(REAL * __restrict u_news, REAL * __restrict gc_unews, const unsigned int Nx, const unsigned int Ny, const unsigned int _Nz, const unsigned int pitch, const unsigned int gc_pitch, const unsigned int p)
 {
-	unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
-	unsigned int j = threadIdx.y + blockIdx.y * blockDim.y;
+	unsigned int i, j ,k;
+	i = threadIdx.x + blockIdx.x * blockDim.x;
+	j = threadIdx.y + blockIdx.y * blockDim.y;
 
-	unsigned int k = (1-p)*(_Nz+1);
+	k = (1-p)*(_Nz+1);
 
 	unsigned int idx2d = j * gc_pitch + i;
 
@@ -166,10 +168,11 @@ __global__ void heat3D(REAL * __restrict u_new, REAL * __restrict u_old, const u
 /////////////////////////////////////////////////////////////////////////////
 // Function that copies content from the host to the device's constant memory
 /////////////////////////////////////////////////////////////////////////////
-extern "C" void CopyToConstantMemory(const REAL c0, const REAL c1)
+extern "C" void CopyToConstantMemory(const REAL kx, const REAL ky, const REAL kz)
 {
-	checkCuda(cudaMemcpyToSymbol(d_c0, &c0, sizeof(REAL), 0, cudaMemcpyHostToDevice));
-	checkCuda(cudaMemcpyToSymbol(d_c1, &c1, sizeof(REAL), 0, cudaMemcpyHostToDevice));
+	checkCuda(cudaMemcpyToSymbol(d_kx, &kx, sizeof(REAL), 0, cudaMemcpyHostToDevice));
+	checkCuda(cudaMemcpyToSymbol(d_ky, &ky, sizeof(REAL), 0, cudaMemcpyHostToDevice));
+	checkCuda(cudaMemcpyToSymbol(d_kz, &kz, sizeof(REAL), 0, cudaMemcpyHostToDevice));
 }
 
 extern "C" void ComputeInnerPoints(dim3 thread_blocks, dim3 threads_per_block, REAL* d_s_Unews, REAL* d_s_Uolds,

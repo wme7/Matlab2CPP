@@ -26,7 +26,7 @@ NVCCFLAGS =-O3 -m64 $(GENCODE_FLAGS) -Xcompiler -fopenmp -Xcompiler -fno-strict-
 CUDALDFLAGS = -L${CUDA_INSTALL_PATH}/lib64 -lcudart
 
 # Make instructions
-all: heat3d_sync.run heat3d_async.run
+all: heat3d_async.run
 
 Util.o: Util.cu
 	$(NVCC) $(MPICFLAGS) $(NVCCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
