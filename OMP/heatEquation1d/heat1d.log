@@ -1,0 +1,81 @@
+[manuel@nhri heatEquation1d]$ sh run.sh 
+rm *.o *.txt *.run
+g++ -O3 -c main.cpp -fopenmp -lgomp 
+g++ -O3 -c heat1d.cpp -fopenmp -lgomp
+g++ main.o heat1d.o -O3 -fopenmp -lgomp -o heat1d.run
+Final time: 0.305176
+Using OMP solver with Dirichlet BCs 
+=========================== HeatEq1D (7-pt) =======================
+Optimization                                 :  none
+Kernel time ex. data transfers               :  0.080000 seconds
+===================================================================
+Total effective GFLOPs                       :  0.257000
+===================================================================
+1D Grid Size                                 :  257
+Iterations                                   :  10000
+Final Time                                   :  0.305176
+===================================================================
+L1 norm                                       :  7.638412e-08
+L2 norm                                       :  4.607226e-13
+Linf norm                                     :  5.999496e-08
+Final time: 0.0762939
+Using OMP solver with Dirichlet BCs 
+=========================== HeatEq1D (7-pt) =======================
+Optimization                                 :  none
+Kernel time ex. data transfers               :  0.080000 seconds
+===================================================================
+Total effective GFLOPs                       :  0.513000
+===================================================================
+1D Grid Size                                 :  513
+Iterations                                   :  10000
+Final Time                                   :  0.0762939
+===================================================================
+L1 norm                                       :  3.382043e-05
+L2 norm                                       :  1.806296e-07
+Linf norm                                     :  2.656284e-05
+Final time: 0.0190735
+Using OMP solver with Dirichlet BCs 
+=========================== HeatEq1D (7-pt) =======================
+Optimization                                 :  none
+Kernel time ex. data transfers               :  0.120000 seconds
+===================================================================
+Total effective GFLOPs                       :  0.683333
+===================================================================
+1D Grid Size                                 :  1025
+Iterations                                   :  10000
+Final Time                                   :  0.0190735
+===================================================================
+L1 norm                                       :  1.860998e-05
+L2 norm                                       :  1.093816e-07
+Linf norm                                     :  1.461629e-05
+Final time: 0.00476837
+Using OMP solver with Dirichlet BCs 
+=========================== HeatEq1D (7-pt) =======================
+Optimization                                 :  none
+Kernel time ex. data transfers               :  0.130000 seconds
+===================================================================
+Total effective GFLOPs                       :  1.260923
+===================================================================
+1D Grid Size                                 :  2049
+Iterations                                   :  10000
+Final Time                                   :  0.00476837
+===================================================================
+L1 norm                                       :  5.626983e-06
+L2 norm                                       :  2.000008e-08
+Linf norm                                     :  4.419426e-06
+Final time: 0.00119209
+Using OMP solver with Dirichlet BCs 
+=========================== HeatEq1D (7-pt) =======================
+Optimization                                 :  none
+Kernel time ex. data transfers               :  0.230000 seconds
+===================================================================
+Total effective GFLOPs                       :  1.425043
+===================================================================
+1D Grid Size                                 :  4097
+Iterations                                   :  10000
+Final Time                                   :  0.00119209
+===================================================================
+L1 norm                                       :  1.474701e-06
+L2 norm                                       :  2.747375e-09
+Linf norm                                     :  1.158228e-06
+[manuel@nhri heatEquation1d]$
