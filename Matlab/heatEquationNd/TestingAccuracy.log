@@ -1,51 +1,63 @@
 L_1 norm: 3.57e-02 
 L_2 norm: 2.83e-02 
 L_inf norm: 2.79e-02 
-Elapsed time is 0.001799 seconds.
+Elapsed time is 0.000241 seconds.
 L_1 norm: 3.23e-02 
 L_2 norm: 2.03e-02 
 L_inf norm: 1.97e-02 
-Elapsed time is 0.001335 seconds.
+Elapsed time is 0.000246 seconds.
 L_1 norm: 1.08e-03 
 L_2 norm: 1.53e-03 
 L_inf norm: 4.12e-03 
-Elapsed time is 0.015102 seconds.
+Elapsed time is 0.006654 seconds.
 L_1 norm: 7.40e-03 
 L_2 norm: 5.82e-03 
 L_inf norm: 5.80e-03 
-Elapsed time is 0.000335 seconds.
+Elapsed time is 0.000218 seconds.
 L_1 norm: 6.95e-03 
 L_2 norm: 4.31e-03 
 L_inf norm: 4.28e-03 
-Elapsed time is 0.001252 seconds.
+Elapsed time is 0.001192 seconds.
 L_1 norm: 2.51e-04 
 L_2 norm: 3.46e-04 
 L_inf norm: 9.69e-04 
-Elapsed time is 0.238604 seconds.
+Elapsed time is 0.233634 seconds.
 L_1 norm: 1.73e-03 
 L_2 norm: 1.36e-03 
 L_inf norm: 1.36e-03 
-Elapsed time is 0.000461 seconds.
+Elapsed time is 0.000396 seconds.
 L_1 norm: 1.64e-03 
 L_2 norm: 1.01e-03 
 L_inf norm: 1.01e-03 
-Elapsed time is 0.013351 seconds.
+Elapsed time is 0.013137 seconds.
 L_1 norm: 6.00e-05 
 L_2 norm: 8.23e-05 
 L_inf norm: 2.32e-04 
-Elapsed time is 8.604486 seconds.
+Elapsed time is 8.669851 seconds.
 L_1 norm: 4.19e-04 
 L_2 norm: 3.29e-04 
 L_inf norm: 3.29e-04 
-Elapsed time is 0.001586 seconds.
+Elapsed time is 0.001487 seconds.
 L_1 norm: 3.98e-04 
 L_2 norm: 2.45e-04 
 L_inf norm: 2.45e-04 
-Elapsed time is 0.199604 seconds.
+Elapsed time is 0.201851 seconds.
 L_1 norm: 1.46e-05 
 L_2 norm: 2.01e-05 
 L_inf norm: 5.67e-05 
-Elapsed time is 303.241852 seconds.
+Elapsed time is 300.702549 seconds.
+L_1 norm: 1.03e-04 
+L_2 norm: 8.12e-05 
+L_inf norm: 8.12e-05 
+Elapsed time is 0.007353 seconds.
+L_1 norm: 9.81e-05 
+L_2 norm: 6.05e-05 
+L_inf norm: 6.05e-05 
+Elapsed time is 3.223017 seconds.
+L_1 norm: 3.62e-06 
+L_2 norm: 4.96e-06 
+L_inf norm: 1.40e-05 
+Elapsed time is 9996.474881 seconds.
 ***************************************************************
  Heat solver 1 D
 ***************************************************************
@@ -54,6 +66,7 @@ Elapsed time is 303.241852 seconds.
  20 	 7.40e-03 	 2.27 		 5.80e-03 	 2.27 
  40 	 1.73e-03 	 2.10 		 1.36e-03 	 2.10 
  80 	 4.19e-04 	 2.04 		 3.29e-04 	 2.04 
+160 	 1.03e-04 	 2.02 		 8.12e-05 	 2.02 
 ***************************************************************
  Heat solver 2 D
 ***************************************************************
@@ -62,6 +75,7 @@ Elapsed time is 303.241852 seconds.
  20 	 6.95e-03 	 2.22 		 4.28e-03 	 2.20 
  40 	 1.64e-03 	 2.09 		 1.01e-03 	 2.09 
  80 	 3.98e-04 	 2.04 		 2.45e-04 	 2.04 
+160 	 9.81e-05 	 2.02 		 6.05e-05 	 2.02 
 ***************************************************************
  Heat solver 3 D
 ***************************************************************
@@ -70,3 +84,4 @@ Elapsed time is 303.241852 seconds.
  20 	 2.51e-04 	 2.11 		 9.69e-04 	 2.09 
  40 	 6.00e-05 	 2.06 		 2.32e-04 	 2.06 
  80 	 1.46e-05 	 2.03 		 5.67e-05 	 2.03 
+160 	 3.62e-06 	 2.02 		 1.40e-05 	 2.02 
