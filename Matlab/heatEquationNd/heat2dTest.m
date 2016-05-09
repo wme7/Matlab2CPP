@@ -8,16 +8,20 @@
 %        National Health Research Institutes, NHRI, 2016.02.11
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-clear; %close all; clc;
-
+function [L1,Linf] = heat2dTest(nx,ny,tFinal)
 %% Parameters
 D = 1.0; % alpha
-tFinal = 0.1;	% End time
-L = 2; nx = 32; dx = L/(nx-1); 
-Dx = D/dx^2; 
+%tFinal = 0.1;	% End time
+L = 2; 
+%nx = 32; 
+dx = L/(nx-1); 
+W = 2; 
+%ny = 32; 
+dy = W/(ny-1);
+Dx = D/dx^2; Dy = D/dy^2; 
 
 % Build Numerical Mesh
-x = 0:dx:L;
+[x,y] = meshgrid(0:dx:L,0:dy:W);
 
 % Add source term
 sourcefun='dont'; % add source term
@@ -27,31 +31,28 @@ switch sourcefun
 end
 
 % Build IC
-u0 = sin(pi*x);
+u0 = sin(pi*x).*sin(pi*y);
 
 % Build Exact solution
-uE = exp(-D*tFinal*pi^2)*sin(pi*x);
+uE = exp(-2*D*tFinal*pi^2)*sin(pi*x).*sin(pi*y);
 
 % Set Initial time step
-dt0 = 1/(2*D*(1/dx^2)); % stability condition
-
-% Set plot region
-region = [0,L,-0.5,0.5]; 
+dt0 = 1/(2*D*(1/dx^2+1/dy^2)); % stability condition
 
 %% Solver Loop 
 % load initial conditions 
 t=dt0; it=0; u=u0; dt=dt0;
  
 while t < tFinal
-    
     % RK stages
     uo=u;
 
     % forward euler solver
-    u = Laplace1d(uo,nx,Dx,S,dt);
+    u = Laplace2d(uo,nx,ny,Dx,Dy,S,dt);
     
     % set BCs
-    u(1) = 0; u(nx) = 0;
+    u(1,:) = 0; u(nx,:) = 0;
+    u(:,1) = 0; u(:,ny) = 0;
 
     % compute time step
     if t+dt>tFinal, dt=tFinal-t; end; 
@@ -59,20 +60,10 @@ while t < tFinal
     % Update iteration counter and time
     it=it+1; t=t+dt;
     
-    % plot solution
-    if mod(it,100); plot(x,u,'.b'); axis([0,L,-1,1]); drawnow; end
 end
- 
-%% % Post Process 
-% Final Plot
-h=plot(x,u,'.b',x,uE,'-r'); axis(region);
-title('heat1d, Cell Averages','interpreter','latex','FontSize',18);
-xlabel('$\it{x}$','interpreter','latex','FontSize',14);
-ylabel('$\it{u(x)}$','interpreter','latex','FontSize',14);
-legend('Jacobi Method','Exact Solution');
 
 % Error norms
 err = abs(uE(:)-u(:));
-L1 = dx*sum(abs(err)); fprintf('L_1 norm: %1.2e \n',L1);
-L2 = (dx*sum(err.^2))^0.5; fprintf('L_2 norm: %1.2e \n',L2);
+L1 = dx*dy*sum(abs(err)); fprintf('L_1 norm: %1.2e \n',L1);
+L2 = (dx*dy*sum(err.^2))^0.5; fprintf('L_2 norm: %1.2e \n',L2);
 Linf = norm(err,inf); fprintf('L_inf norm: %1.2e \n',Linf);

@@ -9,12 +9,12 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clear; %close all; clc;
- 
+
 %% Parameters
 D = 1.0; % alpha
 tFinal = 0.1;	% End time
-L = 2; nx = 32; dx = L/nx; 
-W = 2; ny = 32; dy = W/ny;
+L = 2; nx = 32; dx = L/(nx-1); 
+W = 2; ny = 32; dy = W/(ny-1);
 Dx = D/dx^2; Dy = D/dy^2; 
 
 % Build Numerical Mesh
@@ -48,11 +48,11 @@ while t < tFinal
     uo=u;
 
     % forward euler solver
-    u = Laplace2d(uo,nx+1,ny+1,Dx,Dy,S,dt);
+    u = Laplace2d(uo,nx,ny,Dx,Dy,S,dt);
     
     % set BCs
-    u(1,:) = 0; u(nx+1,:) = 0;
-    u(:,1) = 0; u(:,ny+1) = 0;
+    u(1,:) = 0; u(nx,:) = 0;
+    u(:,1) = 0; u(:,ny) = 0;
 
     % compute time step
     if t+dt>tFinal, dt=tFinal-t; end; 
@@ -77,6 +77,6 @@ ylabel('$\it{y}$','interpreter','latex','FontSize',14);
 
 % Error norms
 err = abs(uE(:)-u(:));
-L1 = dx*dy*norm(err,1); fprintf('L_1 norm: %1.2e \n',L1);
-L2 = dx*dy*norm(err,2); fprintf('L_1 norm: %1.2e \n',L2);
+L1 = dx*dy*sum(abs(err)); fprintf('L_1 norm: %1.2e \n',L1);
+L2 = (dx*dy*sum(err.^2))^0.5; fprintf('L_2 norm: %1.2e \n',L2);
 Linf = norm(err,inf); fprintf('L_inf norm: %1.2e \n',Linf);

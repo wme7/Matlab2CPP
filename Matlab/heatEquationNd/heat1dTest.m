@@ -8,12 +8,13 @@
 %        National Health Research Institutes, NHRI, 2016.02.11
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-clear; %close all; clc;
-
+function [L1,Linf] = heat1dTest(nx,tFinal) 
 %% Parameters
 D = 1.0; % alpha
-tFinal = 0.1;	% End time
-L = 2; nx = 32; dx = L/(nx-1); 
+%tFinal = 0.1;	% End time
+L = 2; 
+%nx = 32; 
+dx = L/(nx-1); 
 Dx = D/dx^2; 
 
 % Build Numerical Mesh
@@ -34,9 +35,6 @@ uE = exp(-D*tFinal*pi^2)*sin(pi*x);
 
 % Set Initial time step
 dt0 = 1/(2*D*(1/dx^2)); % stability condition
-
-% Set plot region
-region = [0,L,-0.5,0.5]; 
 
 %% Solver Loop 
 % load initial conditions 
@@ -59,17 +57,7 @@ while t < tFinal
     % Update iteration counter and time
     it=it+1; t=t+dt;
     
-    % plot solution
-    if mod(it,100); plot(x,u,'.b'); axis([0,L,-1,1]); drawnow; end
 end
- 
-%% % Post Process 
-% Final Plot
-h=plot(x,u,'.b',x,uE,'-r'); axis(region);
-title('heat1d, Cell Averages','interpreter','latex','FontSize',18);
-xlabel('$\it{x}$','interpreter','latex','FontSize',14);
-ylabel('$\it{u(x)}$','interpreter','latex','FontSize',14);
-legend('Jacobi Method','Exact Solution');
 
 % Error norms
 err = abs(uE(:)-u(:));

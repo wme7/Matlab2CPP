@@ -8,14 +8,19 @@
 %        National Health Research Institutes, NHRI, 2016.02.11
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-clear; %close all; clc;
-
+function [L1,Linf] = heat3dTest(nx,ny,nz,tFinal)
 %% Parameters
 D = 1.0; % alpha
-tFinal = 0.1;	% End time
-L = 1; nx = 10; dx = L/(nx-1); 
-W = 1; ny = 10; dy = W/(ny-1);
-H = 1; nz = 20; dz = H/(nz-1);
+%tFinal = 0.1;	% End time
+L = 1; 
+%nx = 32; 
+dx = L/(nx-1); 
+W = 1; 
+%ny = 32; 
+dy = W/(ny-1);
+H = 1; 
+%nz = 64; 
+dz = H/(nz-1);
 Dx = D/dx^2; Dy = D/dy^2; Dz = D/dz^2;
 
 % Build Numerical Mesh
@@ -36,9 +41,6 @@ uE = exp(-3*D*tFinal*pi^2)*sin(pi*x).*sin(pi*y).*sin(pi*z);
 
 % Set Initial time step
 dt0 = 1/(2*D*(1/dx^2+1/dy^2+1/dz^2)); % stability condition
-
-% Set plot region
-region = [0,L,0,W,0,H]; 
 
 %% Solver Loop 
 % load initial conditions 
@@ -62,31 +64,7 @@ while t < tFinal
     % Update iteration counter and time
     it=it+1; t=t+dt;
     
-    % plot solution
-    if mod(it,100); slice(x,y,z,u,L/2,W/2,H/2); axis(region); drawnow; end
 end
- 
-%% % Post Process 
-% Final Plot
-figure(2);
-subplot(121); h=slice(x,y,z,u,L/2,W/2,H/2); axis(region);
-title('heat3d, Cell Averages','interpreter','latex','FontSize',18);
-h(1).EdgeColor = 'none';
-h(2).EdgeColor = 'none';
-h(3).EdgeColor = 'none';
-xlabel('$\it{x}$','interpreter','latex','FontSize',14);
-ylabel('$\it{y}$','interpreter','latex','FontSize',14);
-zlabel('$\it{z}$','interpreter','latex','FontSize',14);
-colorbar;
-subplot(122); q=slice(x,y,z,uE,L/2,W/2,H/2); axis(region);
-title('heat3d, Exact solution','interpreter','latex','FontSize',18);
-q(1).EdgeColor = 'none';
-q(2).EdgeColor = 'none';
-q(3).EdgeColor = 'none';
-xlabel('$\it{x}$','interpreter','latex','FontSize',14);
-ylabel('$\it{y}$','interpreter','latex','FontSize',14);
-zlabel('$\it{z}$','interpreter','latex','FontSize',14);
-colorbar;
 
 % Error norms
 err = abs(uE(:)-u(:));
