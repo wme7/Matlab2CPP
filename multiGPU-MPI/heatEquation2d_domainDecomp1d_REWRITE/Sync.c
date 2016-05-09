@@ -23,22 +23,27 @@ inline void __checkCuda(cudaError_t error, const char *file, const int line)
 ///////////////////////
 int main(int argc, char** argv)
 {
-  unsigned int max_iters, Nx, Ny, Nz, blockX, blockY, blockZ;
+  REAL C;
+  unsigned int L, W, H, Nx, Ny, Nz, max_iters, blockX, blockY, blockZ;
   int rank, numberOfProcesses;
 
-  if (argc == 8)
+  if (argc == 12)
   {
-    Nx = atoi(argv[1]);
-    Ny = atoi(argv[2]);
-    Nz = atoi(argv[3]);
-    max_iters = atoi(argv[4]);
-    blockX = atoi(argv[5]);
-    blockY = atoi(argv[6]);
-    blockZ = atoi(argv[7]);
+    C = atof(argv[1]); // conductivity, here it is assumed: Cx = Cy = Cz = C.
+    L = atoi(argv[2]); // domain lenght
+    W = atoi(argv[3]); // domain width 
+    H = atoi(argv[4]); // domain height
+    Nx = atoi(argv[5]); // number cells in x-direction
+    Ny = atoi(argv[6]); // number cells in x-direction
+    Nz = atoi(argv[7]); // number cells in x-direction
+    max_iters = atoi(argv[8]); // number of iterations / time steps
+    blockX = atoi(argv[9]); // block size in the i-direction
+    blockY = atoi(argv[10]); // block size in the j-direction
+    blockZ = atoi(argv[11]); // block size in the k-direction
   }
   else
   {
-    printf("Usage: %s nx ny nz i block_x block_y block_z\n", argv[0]);
+    printf("Usage: %s diffCoef L W H nx ny nz i block_x block_y block_z\n", argv[0]);
     exit(1);
   }
 
@@ -46,16 +51,20 @@ int main(int argc, char** argv)
   AssignDevices(rank);
   ECCCheck(rank);
 
-    // Define constants
-  const REAL L = 1.0;
-  const REAL h = L/(Nx+1);
-  const REAL dt = h*h/6.0;
-  const REAL beta = dt/(h*h);
-  const REAL c0 = beta;
-  const REAL c1 = (1-6*beta);
+  unsigned int R; REAL dx, dy, dz, dt, kx, ky, kz, tFinal;
+
+  dx = (REAL)L/(Nx+1); // dx, cell size
+  dy = (REAL)W/(Ny+1); // dy, cell size
+  dz = (REAL)H/(Nz+1); // dz, cell size
+  dt = 1/(2*C*(1/dx/dx+1/dy/dy+1/dz/dz)); // dt, fix time step size
+  kx = C*dt/(dx*dx); // numerical conductivity
+  ky = C*dt/(dy*dy); // numerical conductivity
+  kz = C*dt/(dz*dz); // numerical conductivity
+  tFinal = dt*max_iters; //printf("Final time: %g\n",tFinal);
+  R = 1; // halo regions width (in cells size)
 
   // Copy constants to Constant Memory on the GPUs
-  CopyToConstantMemory(c0, c1);
+  CopyToConstantMemory(kx, ky, kz);
 
   // Decompose along the z-axis
   const int _Nz = Nz/numberOfProcesses;
@@ -68,9 +77,7 @@ int main(int argc, char** argv)
   u_new = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(Nz+2));
   u_old = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(Nz+2));
 
-  if (rank == 0) {
-    h_Uold = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(Nz+2)); 
-  }
+  if (rank == 0) h_Uold = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(Nz+2)); 
 
   init(u_old, u_new, h, Nx, Ny, Nz);
 

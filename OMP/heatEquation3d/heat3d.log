@@ -1,83 +1,84 @@
 [manuel@nhri heatEquation3d]$ sh run.sh 
-rm *.o
-rm: cannot remove ‘*.o’: No such file or directory
+rm *.o *.txt *.run
+rm: cannot remove ‘*.txt’: No such file or directory
 make: *** [clean] Error 1
 g++ -O3 -c main.cpp -fopenmp -lgomp 
 g++ -O3 -c heat3d.cpp -fopenmp -lgomp
 g++ main.o heat3d.o -O3 -fopenmp -lgomp -o heat3d.run
-Final time: 0.00813802
+Final time: 0.0109577
 Using OMP solver with Dirichlet BCs 
 =========================== HeatEq3D (7-pt) =======================
 Optimization                                 :  none
-Kernel time ex. data transfers               :  0.070000 seconds
+Kernel time ex. data transfers               :  0.090000 seconds
 ===================================================================
-Total effective GFLOPs                       :  0.808971
+Total effective GFLOPs                       :  0.568889
 ===================================================================
-3D Grid Size                                 :  33 x 33 x 65 
+3D Grid Size                                 :  40 x 40 x 40 
 Iterations                                   :  100
-Final Time                                   :  0.00813802
+Final Time                                   :  0.0109577
 ===================================================================
-L1 norm                                       :  4.591080e-04
-L2 norm                                       :  2.603208e-02
-Linf norm                                     :  1.782622e-03
-Final time: 0.00203451
+L1 norm                                       :  5.405495e-04
+L2 norm                                       :  7.419210e-04
+Linf norm                                     :  2.093467e-03
+Final time: 0.00267051
 Using OMP solver with Dirichlet BCs 
 =========================== HeatEq3D (7-pt) =======================
 Optimization                                 :  none
-Kernel time ex. data transfers               :  0.540000 seconds
+Kernel time ex. data transfers               :  0.490000 seconds
 ===================================================================
-Total effective GFLOPs                       :  0.807444
+Total effective GFLOPs                       :  0.835918
 ===================================================================
-3D Grid Size                                 :  65 x 65 x 129 
+3D Grid Size                                 :  80 x 80 x 80 
 Iterations                                   :  100
-Final Time                                   :  0.00203451
+Final Time                                   :  0.00267051
 ===================================================================
-L1 norm                                       :  1.441481e-04
-L2 norm                                       :  2.046910e-02
-Linf norm                                     :  5.587555e-04
-Final time: 0.000508626
+L1 norm                                       :  1.840621e-04
+L2 norm                                       :  2.522871e-04
+Linf norm                                     :  7.129523e-04
+Final time: 0.000659257
 Using OMP solver with Dirichlet BCs 
 =========================== HeatEq3D (7-pt) =======================
 Optimization                                 :  none
-Kernel time ex. data transfers               :  3.920000 seconds
+Kernel time ex. data transfers               :  3.760000 seconds
 ===================================================================
-Total effective GFLOPs                       :  0.872803
+Total effective GFLOPs                       :  0.871489
 ===================================================================
-3D Grid Size                                 :  129 x 129 x 257 
+3D Grid Size                                 :  160 x 160 x 160 
 Iterations                                   :  100
-Final Time                                   :  0.000508626
+Final Time                                   :  0.000659257
 ===================================================================
-L1 norm                                       :  3.797697e-05
-L2 norm                                       :  1.139388e-02
-Linf norm                                     :  1.479017e-04
-Final time: 0.000127157
+L1 norm                                       :  4.889324e-05
+L2 norm                                       :  6.701152e-05
+Linf norm                                     :  1.901987e-04
+Final time: 0.000163782
 Using OMP solver with Dirichlet BCs 
 =========================== HeatEq3D (7-pt) =======================
 Optimization                                 :  none
-Kernel time ex. data transfers               :  30.170000 seconds
+Kernel time ex. data transfers               :  30.090000 seconds
 ===================================================================
-Total effective GFLOPs                       :  0.898459
+Total effective GFLOPs                       :  0.871200
 ===================================================================
-3D Grid Size                                 :  257 x 257 x 513 
+3D Grid Size                                 :  320 x 320 x 320 
 Iterations                                   :  100
-Final Time                                   :  0.000127157
+Final Time                                   :  0.000163782
 ===================================================================
-L1 norm                                       :  8.681847e-06
-L2 norm                                       :  5.526382e-03
-Linf norm                                     :  3.860679e-05
-Final time: 3.17891e-05
+L1 norm                                       :  1.144122e-05
+L2 norm                                       :  1.646325e-05
+Linf norm                                     :  4.910159e-05
+Final time: 4.08176e-05
 Using OMP solver with Dirichlet BCs 
 =========================== HeatEq3D (7-pt) =======================
 Optimization                                 :  none
-Kernel time ex. data transfers               :  254.630005 seconds
+Kernel time ex. data transfers               :  239.970001 seconds
 ===================================================================
-Total effective GFLOPs                       :  0.847499
+Total effective GFLOPs                       :  0.873923
 ===================================================================
-3D Grid Size                                 :  513 x 513 x 1025 
+3D Grid Size                                 :  640 x 640 x 640 
 Iterations                                   :  100
-Final Time                                   :  3.17891e-05
+Final Time                                   :  4.08176e-05
 ===================================================================
-L1 norm                                       :  9.536743e-07
-L2 norm                                       :  1.790562e-03
-Linf norm                                     :  1.128196e-05
+L1 norm                                       :  9.811545e-07
+L2 norm                                       :  3.074426e-06
+Linf norm                                     :  1.325440e-05
 [manuel@nhri heatEquation3d]$ 
+

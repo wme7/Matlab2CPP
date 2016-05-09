@@ -1,4 +1,4 @@
-mamailfunction myplot(result,nx,ny,nz)
+function myplot(result,nx,ny,nz)
 
 L = 10;
 W = 10;

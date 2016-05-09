@@ -27,7 +27,7 @@ int main(int argc, char** argv)
   	unsigned int L, W, H, Nx, Ny, Nz, max_iters, blockX, blockY, blockZ;
 	int rank, numberOfProcesses;
 
-	if (argc == 8)
+	if (argc == 12)
 	{
 		C = atof(argv[1]); // conductivity, here it is assumed: Cx = Cy = Cz = C.
 		L = atoi(argv[2]); // domain lenght
@@ -53,14 +53,14 @@ int main(int argc, char** argv)
 
 	unsigned int R;	REAL dx, dy, dz, dt, kx, ky, kz, tFinal;
 
-	dx = (REAL)L/Nx; // dx, cell size
-	dy = (REAL)W/Ny; // dy, cell size
-	dz = (REAL)H/Nz; // dz, cell size
+	dx = (REAL)L/(Nx+1); // dx, cell size
+	dy = (REAL)W/(Ny+1); // dy, cell size
+	dz = (REAL)H/(Nz+1); // dz, cell size
 	dt = 1/(2*C*(1/dx/dx+1/dy/dy+1/dz/dz)); // dt, fix time step size
 	kx = C*dt/(dx*dx); // numerical conductivity
 	ky = C*dt/(dy*dy); // numerical conductivity
 	kz = C*dt/(dz*dz); // numerical conductivity
-	tFinal = dt*max_iters; printf("Final time: %g\n",tFinal);
+	tFinal = dt*max_iters; //printf("Final time: %g\n",tFinal);
 	R = 1; // halo regions width (in cells size)
 
 	// Copy constants to Constant Memory on the GPUs
@@ -71,90 +71,89 @@ int main(int argc, char** argv)
   	const int dt_size = sizeof(REAL);
 
 	// Host memory allocations
-	REAL *u_new, *u_old;
-	REAL *h_Uold;
+	REAL *h_u, *h_un;
 
-	u_new = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(Nz+2));
-	u_old = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(Nz+2));
+	// Allocate global domains in host
+	h_u  = (REAL*)malloc(dt_size*(Nx+2*R)*(Ny+2*R)*(Nz+2*R));
+	h_un = (REAL*)malloc(dt_size*(Nx+2*R)*(Ny+2*R)*(Nz+2*R));
 
-	if (rank==ROOT) h_Uold = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(Nz+2)); 
-
-	init(u_new, dx, dy, dz, Nx+2, Ny+2, Nz+2);
-	init(u_old, dx, dy, dz, Nx+2, Ny+2, Nz+2);
+	// Set Initial condition in global domain
+	init(h_u , dx, dy, dz, Nx+2*R, Ny+2*R, Nz+2*R);
 
 	// Allocate and generate host subdomains
-	REAL *h_s_Uolds, *h_s_Unews, *h_s_rbuf[numberOfProcesses];
-	REAL *left_send_buffer, *left_receive_buffer;
-	REAL *right_send_buffer, *right_receive_buffer;
+	REAL *h_s_u, *h_s_un, *h_s_recvbuff[numberOfProcesses];
+	REAL *l_send_buffer, *l_recv_buffer;
+	REAL *r_send_buffer, *r_recv_buffer;
 
-	h_s_Unews = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(_Nz+2));
-	h_s_Uolds = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(_Nz+2));
+	h_s_u  = (REAL*)malloc(dt_size*(Nx+2*R)*(Ny+2*R)*(_Nz+2*R));
+	h_s_un = (REAL*)malloc(dt_size*(Nx+2*R)*(Ny+2*R)*(_Nz+2*R));
 
-#if defined(DEBUG) || defined(_DEBUG)
-  if (rank == 0)
-  {
-    for (int i = 0; i < numberOfProcesses; i++)
-    {
-        h_s_rbuf[i] = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(_Nz+2));
-        checkCuda(cudaHostAlloc((void**)&h_s_rbuf[i], dt_size*(Nx+2)*(Ny+2)*(_Nz+2), cudaHostAllocPortable));
-    }
-  }
-#endif
+    checkCuda(cudaHostAlloc((void**)&h_s_un, dt_size*(Nx+2*R)*(Ny+2*R)*(_Nz+2*R), cudaHostAllocPortable));
+    checkCuda(cudaHostAlloc((void**)&h_s_u , dt_size*(Nx+2*R)*(Ny+2*R)*(_Nz+2*R), cudaHostAllocPortable));
 
-    right_send_buffer = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(R));
-    left_send_buffer = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(R));
-    right_receive_buffer = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(R));
-    left_receive_buffer = (REAL*)malloc(sizeof(REAL)*(Nx+2)*(Ny+2)*(R));
+	if (rank == 0) {
+    	for (int i = 0; i < numberOfProcesses; i++) {
+        	h_s_recvbuff[i] = (REAL*)malloc(dt_size*(Nx+2)*(Ny+2)*(_Nz+2));
+        	checkCuda(cudaHostAlloc((void**)&h_s_recvbuff[i], dt_size*(Nx+2)*(Ny+2)*(_Nz+2), cudaHostAllocPortable));
+    	}
+  	}
 
-    checkCuda(cudaHostAlloc((void**)&h_s_Unews, dt_size*(Nx+2)*(Ny+2)*(_Nz+2), cudaHostAllocPortable));
-    checkCuda(cudaHostAlloc((void**)&h_s_Uolds, dt_size*(Nx+2)*(Ny+2)*(_Nz+2), cudaHostAllocPortable));
+  	// Allocate exchange hallo subdomains
+    r_send_buffer = (REAL*)malloc(dt_size*(Nx+2*R)*(Ny+2*R)*R);
+    l_send_buffer = (REAL*)malloc(dt_size*(Nx+2*R)*(Ny+2*R)*R);
+    r_recv_buffer = (REAL*)malloc(dt_size*(Nx+2*R)*(Ny+2*R)*R);
+    l_recv_buffer = (REAL*)malloc(dt_size*(Nx+2*R)*(Ny+2*R)*R);
 
-    checkCuda(cudaHostAlloc((void**)&right_send_buffer, dt_size*(Nx+2)*(Ny+2)*(R), cudaHostAllocPortable));
-    checkCuda(cudaHostAlloc((void**)&left_send_buffer, dt_size*(Nx+2)*(Ny+2)*(R), cudaHostAllocPortable));
-    checkCuda(cudaHostAlloc((void**)&right_receive_buffer, dt_size*(Nx+2)*(Ny+2)*(R), cudaHostAllocPortable));
-    checkCuda(cudaHostAlloc((void**)&left_receive_buffer, dt_size*(Nx+2)*(Ny+2)*(R), cudaHostAllocPortable));
+    checkCuda(cudaHostAlloc((void**)&r_send_buffer, dt_size*(Nx+2*R)*(Ny+2*R)*R, cudaHostAllocPortable));
+    checkCuda(cudaHostAlloc((void**)&l_send_buffer, dt_size*(Nx+2*R)*(Ny+2*R)*R, cudaHostAllocPortable));
+    checkCuda(cudaHostAlloc((void**)&r_recv_buffer, dt_size*(Nx+2*R)*(Ny+2*R)*R, cudaHostAllocPortable));
+    checkCuda(cudaHostAlloc((void**)&l_recv_buffer, dt_size*(Nx+2*R)*(Ny+2*R)*R, cudaHostAllocPortable));
 
-    init_subdomain(h_s_Uolds, u_old, Nx+2, Ny+2, _Nz+2, rank);
+    init_subdomain(h_s_u, h_u, Nx, Ny, _Nz, rank);
+
+    if (DEBUG) printf("check point %d in rank %d\n",1,rank);
 
 	// GPU stream operations
 	cudaStream_t compute_stream;
-	cudaStream_t right_send_stream, right_receive_stream;
-	cudaStream_t left_send_stream, left_receive_stream;
+	cudaStream_t r_send_stream, r_recv_stream;
+	cudaStream_t l_send_stream, l_recv_stream;
 
 	checkCuda(cudaStreamCreate(&compute_stream));
-	checkCuda(cudaStreamCreate(&right_send_stream));
-	checkCuda(cudaStreamCreate(&left_send_stream));
-	checkCuda(cudaStreamCreate(&right_receive_stream));
-	checkCuda(cudaStreamCreate(&left_receive_stream));
+	checkCuda(cudaStreamCreate(&r_send_stream));
+	checkCuda(cudaStreamCreate(&l_send_stream));
+	checkCuda(cudaStreamCreate(&r_recv_stream));
+	checkCuda(cudaStreamCreate(&l_recv_stream));
 
 	// GPU Memory Operations
 	size_t pitch_bytes, pitch_gc_bytes;
 
-    REAL *d_s_Unews, *d_s_Uolds;
-    REAL *d_right_send_buffer, *d_left_send_buffer;
-    REAL *d_right_receive_buffer, *d_left_receive_buffer;
+    REAL *d_s_u, *d_s_un;
+    REAL *d_r_send_buffer, *d_l_send_buffer;
+    REAL *d_r_recv_buffer, *d_l_recv_buffer;
 
-    checkCuda(cudaMallocPitch((void**)&d_s_Uolds, &pitch_bytes, dt_size*(Nx+2), (Ny+2)*(_Nz+2)));
-    checkCuda(cudaMallocPitch((void**)&d_s_Unews, &pitch_bytes, dt_size*(Nx+2), (Ny+2)*(_Nz+2)));
+    checkCuda(cudaMallocPitch((void**)&d_s_u , &pitch_bytes, dt_size*(Nx+2*R), (Ny+2*R)*(_Nz+2*R)));
+    checkCuda(cudaMallocPitch((void**)&d_s_un, &pitch_bytes, dt_size*(Nx+2*R), (Ny+2*R)*(_Nz+2*R)));
 
-    checkCuda(cudaMallocPitch((void**)&d_left_send_buffer, &pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R)));
-    checkCuda(cudaMallocPitch((void**)&d_left_receive_buffer, &pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R)));
-    checkCuda(cudaMallocPitch((void**)&d_right_send_buffer, &pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R)));
-    checkCuda(cudaMallocPitch((void**)&d_right_receive_buffer, &pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R)));
+    checkCuda(cudaMallocPitch((void**)&d_l_send_buffer, &pitch_gc_bytes, dt_size*(Nx+2*R), (Ny+2*R)*R));
+    checkCuda(cudaMallocPitch((void**)&d_l_recv_buffer, &pitch_gc_bytes, dt_size*(Nx+2*R), (Ny+2*R)*R));
+    checkCuda(cudaMallocPitch((void**)&d_r_send_buffer, &pitch_gc_bytes, dt_size*(Nx+2*R), (Ny+2*R)*R));
+    checkCuda(cudaMallocPitch((void**)&d_r_recv_buffer, &pitch_gc_bytes, dt_size*(Nx+2*R), (Ny+2*R)*R));
 
 	// Copy subdomains from host to device and get walltime
 	double HtD_timer = 0.;
 
-	MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+	CHECK_MPI(MPI_Barrier(MPI_COMM_WORLD));
 	HtD_timer -= MPI_Wtime();
-    MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+    CHECK_MPI(MPI_Barrier(MPI_COMM_WORLD));
 
-    checkCuda(cudaMemcpy2D(d_s_Uolds, pitch_bytes, h_s_Uolds, dt_size*(Nx+2), dt_size*(Nx+2), ((Ny+2)*(_Nz+2)), cudaMemcpyDefault));
-    checkCuda(cudaMemcpy2D(d_s_Unews, pitch_bytes, h_s_Unews, dt_size*(Nx+2), dt_size*(Nx+2), ((Ny+2)*(_Nz+2)), cudaMemcpyDefault));
+    checkCuda(cudaMemcpy2D(d_s_u , pitch_bytes, h_s_u , dt_size*(Nx+2), dt_size*(Nx+2), ((Ny+2)*(_Nz+2)), cudaMemcpyDefault));
+    checkCuda(cudaMemcpy2D(d_s_un, pitch_bytes, h_s_un, dt_size*(Nx+2), dt_size*(Nx+2), ((Ny+2)*(_Nz+2)), cudaMemcpyDefault));
 
-    MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+    if (DEBUG) printf("check point %d in rank %d\n",2,rank);
+
+    CHECK_MPI(MPI_Barrier(MPI_COMM_WORLD));
 	HtD_timer += MPI_Wtime();
-	MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+	CHECK_MPI(MPI_Barrier(MPI_COMM_WORLD));
 
 	unsigned int ghost_width = 1;
 
@@ -173,14 +172,14 @@ int main(int argc, char** argv)
 	//MPI_Status status;
 	MPI_Status status[numberOfProcesses];
 	MPI_Request gather_send_request[numberOfProcesses];
-	MPI_Request right_send_request[numberOfProcesses], left_send_request[numberOfProcesses];
-	MPI_Request right_receive_request[numberOfProcesses], left_receive_request[numberOfProcesses];
+	MPI_Request r_send_request[numberOfProcesses], l_send_request[numberOfProcesses];
+	MPI_Request r_recv_request[numberOfProcesses], l_recv_request[numberOfProcesses];
 
 	double compute_timer = 0.;
 
-	MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+	CHECK_MPI(MPI_Barrier(MPI_COMM_WORLD));
     compute_timer -= MPI_Wtime();
-    MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+    CHECK_MPI(MPI_Barrier(MPI_COMM_WORLD));
 
 	for(unsigned int iterations = 1; iterations < max_iters; iterations++)
 	{
@@ -190,13 +189,13 @@ int main(int argc, char** argv)
 			int kstart = (_Nz+1)-ghost_width;
 			int kstop = _Nz+1;
 
-			ComputeInnerPointsAsync(thread_blocks_halo, threads_per_block, right_send_stream, d_s_Unews, d_s_Uolds, pitch, Nx, Ny, _Nz, kstart, kstop);
-			CopyBoundaryRegionToGhostCellAsync(thread_blocks_halo, threads_per_block, right_send_stream, d_s_Unews, d_right_send_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 0);
+			ComputeInnerPointsAsync(thread_blocks_halo, threads_per_block, r_send_stream, d_s_un, d_s_u, pitch, Nx, Ny, _Nz, kstart, kstop);
+			CopyBoundaryRegionToGhostCellAsync(thread_blocks_halo, threads_per_block, r_send_stream, d_s_un, d_r_send_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 0);
 
-			checkCuda(cudaMemcpy2DAsync(right_send_buffer, dt_size*(Nx+2), d_right_send_buffer, pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R), cudaMemcpyDefault, right_send_stream));
-			checkCuda(cudaStreamSynchronize(right_send_stream));
+			checkCuda(cudaMemcpy2DAsync(r_send_buffer, dt_size*(Nx+2), d_r_send_buffer, pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R), cudaMemcpyDefault, r_send_stream));
+			checkCuda(cudaStreamSynchronize(r_send_stream));
 
-			MPI_CHECK(MPI_Isend(right_send_buffer, (Nx+2)*(Ny+2)*(R), MPI_CUSTOM_REAL, rank+1, 0, MPI_COMM_WORLD, &right_send_request[rank]));
+			CHECK_MPI(MPI_Isend(r_send_buffer, (Nx+2)*(Ny+2)*(R), MPI_CUSTOM_REAL, rank+1, 0, MPI_COMM_WORLD, &r_send_request[rank]));
 		}
 
 		if (rank > 0)
@@ -204,13 +203,13 @@ int main(int argc, char** argv)
 			int kstart = 1;
 			int kstop  = 1+ghost_width;
 
-			ComputeInnerPointsAsync(thread_blocks_halo, threads_per_block, left_send_stream, d_s_Unews, d_s_Uolds, pitch, Nx, Ny, _Nz, kstart, kstop);
-			CopyBoundaryRegionToGhostCellAsync(thread_blocks_halo, threads_per_block, left_send_stream, d_s_Unews, d_left_send_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 1);
+			ComputeInnerPointsAsync(thread_blocks_halo, threads_per_block, l_send_stream, d_s_un, d_s_u, pitch, Nx, Ny, _Nz, kstart, kstop);
+			CopyBoundaryRegionToGhostCellAsync(thread_blocks_halo, threads_per_block, l_send_stream, d_s_un, d_l_send_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 1);
 
-			checkCuda(cudaMemcpy2DAsync(left_send_buffer, dt_size*(Nx+2), d_left_send_buffer, pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R), cudaMemcpyDefault, left_send_stream));
-			checkCuda(cudaStreamSynchronize(left_send_stream));
+			checkCuda(cudaMemcpy2DAsync(l_send_buffer, dt_size*(Nx+2), d_l_send_buffer, pitch_gc_bytes, dt_size*(Nx+2), (Ny+2)*(R), cudaMemcpyDefault, l_send_stream));
+			checkCuda(cudaStreamSynchronize(l_send_stream));
 
-			MPI_CHECK(MPI_Isend(left_send_buffer, (Nx+2)*(Ny+2)*(R), MPI_CUSTOM_REAL, rank-1, 1, MPI_COMM_WORLD, &left_send_request[rank]));
+			CHECK_MPI(MPI_Isend(l_send_buffer, (Nx+2)*(Ny+2)*(R), MPI_CUSTOM_REAL, rank-1, 1, MPI_COMM_WORLD, &l_send_request[rank]));
 		}
 
 		// Compute inner points for device 0
@@ -219,7 +218,7 @@ int main(int argc, char** argv)
 			int kstart = 1;
 			int kstop = (_Nz+1)-ghost_width;
 
-			ComputeInnerPointsAsync(thread_blocks, threads_per_block, compute_stream, d_s_Unews, d_s_Uolds, pitch, Nx, Ny, _Nz, kstart, kstop);
+			ComputeInnerPointsAsync(thread_blocks, threads_per_block, compute_stream, d_s_un, d_s_u, pitch, Nx, Ny, _Nz, kstart, kstop);
 		}
 
 		// Compute inner points for device 1 and n-1
@@ -228,7 +227,7 @@ int main(int argc, char** argv)
 			int kstart = 1+ghost_width;
 			int kstop = (_Nz+1)-ghost_width;
 
-			ComputeInnerPointsAsync(thread_blocks, threads_per_block, compute_stream, d_s_Unews, d_s_Uolds, pitch, Nx, Ny, _Nz, kstart, kstop);
+			ComputeInnerPointsAsync(thread_blocks, threads_per_block, compute_stream, d_s_un, d_s_u, pitch, Nx, Ny, _Nz, kstart, kstop);
 		}
 
 		// Compute inner points for device n
@@ -237,137 +236,123 @@ int main(int argc, char** argv)
 			int kstart = 1+ghost_width;
 			int kstop = _Nz+1;
 
-			ComputeInnerPointsAsync(thread_blocks, threads_per_block, compute_stream, d_s_Unews, d_s_Uolds, pitch, Nx, Ny, _Nz, kstart, kstop);
+			ComputeInnerPointsAsync(thread_blocks, threads_per_block, compute_stream, d_s_un, d_s_u, pitch, Nx, Ny, _Nz, kstart, kstop);
 		}
 
 		// Receive data from 0-2
 		if (rank < numberOfProcesses-1)
 		{
-			MPI_CHECK(MPI_Irecv(right_receive_buffer, (Nx+2)*(Ny+2)*(R), MPI_CUSTOM_REAL, rank+1, 1, MPI_COMM_WORLD, &right_receive_request[rank]));
+			CHECK_MPI(MPI_Irecv(r_recv_buffer, (Nx+2)*(Ny+2)*(R), MPI_CUSTOM_REAL, rank+1, 1, MPI_COMM_WORLD, &r_recv_request[rank]));
 		}
 
 		// Receive data from 1-3
 		if (rank > 0)
 		{
-			MPI_CHECK(MPI_Irecv(left_receive_buffer, (Nx+2)*(Ny+2)*(R), MPI_CUSTOM_REAL, rank-1, 0, MPI_COMM_WORLD, &left_receive_request[rank]));
+			CHECK_MPI(MPI_Irecv(l_recv_buffer, (Nx+2)*(Ny+2)*(R), MPI_CUSTOM_REAL, rank-1, 0, MPI_COMM_WORLD, &l_recv_request[rank]));
 		}
 
 		// Receive data from 0-2
 		if (rank < numberOfProcesses-1)
 		{
-			MPI_CHECK(MPI_Wait(&right_receive_request[rank], MPI_STATUS_IGNORE));
+			CHECK_MPI(MPI_Wait(&r_recv_request[rank], MPI_STATUS_IGNORE));
 
-			checkCuda(cudaMemcpy2DAsync(d_right_receive_buffer, pitch_gc_bytes, right_receive_buffer, dt_size*(Nx+2), dt_size*(Nx+2), ((Ny+2)*(R)), cudaMemcpyDefault, right_receive_stream));
-			CopyGhostCellToBoundaryRegionAsync(thread_blocks_halo, threads_per_block, right_receive_stream, d_s_Unews, d_right_receive_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 0);
+			checkCuda(cudaMemcpy2DAsync(d_r_recv_buffer, pitch_gc_bytes, r_recv_buffer, dt_size*(Nx+2), dt_size*(Nx+2), ((Ny+2)*(R)), cudaMemcpyDefault, r_recv_stream));
+			CopyGhostCellToBoundaryRegionAsync(thread_blocks_halo, threads_per_block, r_recv_stream, d_s_un, d_r_recv_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 0);
 		}
 
 		// Receive data from 1-3
 		if (rank > 0)
 		{
-			MPI_CHECK(MPI_Wait(&left_receive_request[rank], MPI_STATUS_IGNORE));
+			CHECK_MPI(MPI_Wait(&l_recv_request[rank], MPI_STATUS_IGNORE));
 
-			checkCuda(cudaMemcpy2DAsync(d_left_receive_buffer, pitch_gc_bytes, left_receive_buffer, dt_size*(Nx+2), dt_size*(Nx+2), ((Ny+2)*(R)), cudaMemcpyDefault, left_receive_stream));
-			CopyGhostCellToBoundaryRegionAsync(thread_blocks_halo, threads_per_block, left_receive_stream, d_s_Unews, d_left_receive_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 1);
+			checkCuda(cudaMemcpy2DAsync(d_l_recv_buffer, pitch_gc_bytes, l_recv_buffer, dt_size*(Nx+2), dt_size*(Nx+2), ((Ny+2)*(R)), cudaMemcpyDefault, l_recv_stream));
+			CopyGhostCellToBoundaryRegionAsync(thread_blocks_halo, threads_per_block, l_recv_stream, d_s_un, d_l_recv_buffer, Nx, Ny, _Nz, pitch, gc_pitch, 1);
 		}
 
 		if (rank < numberOfProcesses-1)
 		{
-			MPI_CHECK(MPI_Wait(&right_send_request[rank], MPI_STATUS_IGNORE));
+			CHECK_MPI(MPI_Wait(&r_send_request[rank], MPI_STATUS_IGNORE));
 		}
 
 		if (rank > 0)
 		{
-			MPI_CHECK(MPI_Wait(&left_send_request[rank], MPI_STATUS_IGNORE));
+			CHECK_MPI(MPI_Wait(&l_send_request[rank], MPI_STATUS_IGNORE));
 		}
 
 		// Swap pointers on the host
 		checkCuda(cudaDeviceSynchronize());
-		swap(REAL*, d_s_Unews, d_s_Uolds);
+		SWAP(REAL*, d_s_un, d_s_u);
 	}
 
-	MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+	CHECK_MPI(MPI_Barrier(MPI_COMM_WORLD));
 	compute_timer += MPI_Wtime();
-	MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+	CHECK_MPI(MPI_Barrier(MPI_COMM_WORLD));
 
 	// Copy data from device to host
 	double DtH_timer = 0;
 
-	MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+	CHECK_MPI(MPI_Barrier(MPI_COMM_WORLD));
     DtH_timer -= MPI_Wtime();
-    MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+    CHECK_MPI(MPI_Barrier(MPI_COMM_WORLD));
 
-	checkCuda(cudaMemcpy2D(h_s_Uolds, dt_size*(Nx+2), d_s_Uolds, pitch_bytes, dt_size*(Nx+2), (Ny+2)*(_Nz+2), cudaMemcpyDefault));
+	checkCuda(cudaMemcpy2D(h_s_u, dt_size*(Nx+2), d_s_u, pitch_bytes, dt_size*(Nx+2), (Ny+2)*(_Nz+2), cudaMemcpyDefault));
 
-	MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+	CHECK_MPI(MPI_Barrier(MPI_COMM_WORLD));
 	DtH_timer += MPI_Wtime();
-	MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+	CHECK_MPI(MPI_Barrier(MPI_COMM_WORLD));
 
     // Gather results from subdomains
-    MPI_CHECK(MPI_Isend(h_s_Uolds, (Nx+2)*(Ny+2)*(_Nz+2), MPI_CUSTOM_REAL, 0, 0, MPI_COMM_WORLD, &gather_send_request[rank]));
+    CHECK_MPI(MPI_Isend(h_s_u, (Nx+2)*(Ny+2)*(_Nz+2), MPI_CUSTOM_REAL, 0, 0, MPI_COMM_WORLD, &gather_send_request[rank]));
+
+    if (DEBUG) printf("check point %d in rank %d\n",3,rank);
 
 	if (rank == 0)
 	{
 		for (int i = 0; i < numberOfProcesses; i++)
 		{
-			MPI_CHECK(MPI_Recv(h_s_rbuf[i], (Nx+2)*(Ny+2)*(_Nz+2), MPI_CUSTOM_REAL, i, 0, MPI_COMM_WORLD, &status[rank]));
-			merge_domains(h_s_rbuf[i], h_Uold, Nx+2, Ny+2, _Nz+2, i);
+			CHECK_MPI(MPI_Recv(h_s_recvbuff[i], (Nx+2)*(Ny+2)*(_Nz+2), MPI_CUSTOM_REAL, i, 0, MPI_COMM_WORLD, &status[rank]));
+			merge_subdomain(h_s_recvbuff[i], h_un, Nx, Ny, _Nz, i);
 		}
-		// print solution to file
-		if (WRITE) Save3D(h_Uold, Nx, Ny, Nz);
+		if (WRITE) Save3D(h_un, Nx+2*R, Ny+2*R, Nz+2*R);
 	}
-
-	// Calculate on host
-#if defined(DEBUG) || defined(_DEBUG)
-	if (rank == 0)
-	{
-		//cpu_heat3D(u_new, u_old, c0, c1, max_iters, Nx, Ny, Nz);
-	}
-#endif
 
 	if (rank == 0)
 	{
 		float gflops = CalcGflops(compute_timer, max_iters, Nx, Ny, Nz);
 		PrintSummary("HeatEq3D (7-pt)", "Plane sweeping", compute_timer, tFinal, HtD_timer, DtH_timer, gflops, max_iters, Nx+2, Ny+2, Nz+2);
-
-		//CalcError(h_Uold, u_old, t, h, Nx+2, Ny+2, Nz+2);
+		CalcError(h_un, tFinal, dx, dy, dz, Nx, Ny, Nz);
 	}
+
+	if (DEBUG) printf("check point %d in rank %d\n",4,rank);
 
 	// Finalize MPI
 	Finalize();
 
   // Free device memory
-    checkCuda(cudaFree(d_s_Unews));
-    checkCuda(cudaFree(d_s_Uolds));
-    checkCuda(cudaFree(d_right_send_buffer));
-    checkCuda(cudaFree(d_left_send_buffer));
-    checkCuda(cudaFree(d_right_receive_buffer));
-    checkCuda(cudaFree(d_left_receive_buffer));
+    checkCuda(cudaFree(d_s_un));
+    checkCuda(cudaFree(d_s_u));
+    checkCuda(cudaFree(d_r_send_buffer));
+    checkCuda(cudaFree(d_l_send_buffer));
+    checkCuda(cudaFree(d_r_recv_buffer));
+    checkCuda(cudaFree(d_l_recv_buffer));
 
     // Free host memory
-    checkCuda(cudaFreeHost(h_s_Unews));
-    checkCuda(cudaFreeHost(h_s_Uolds));
+    checkCuda(cudaFreeHost(h_s_un));
+    checkCuda(cudaFreeHost(h_s_u));
 
-#if defined(DEBUG) || defined(_DEBUG)
-  if (rank == 0)
-  {
-  	for (int i = 0; i < numberOfProcesses; i++)
-  	{
-  		checkCuda(cudaFreeHost(h_s_rbuf[i]));
-  	}
+	if (rank == 0) {
+		for (int i = 0; i < numberOfProcesses; i++) checkCuda(cudaFreeHost(h_s_recvbuff[i])); 
+	}
 
-    free(h_Uold);
-  }
-#endif
-
-    checkCuda(cudaFreeHost(left_send_buffer));
-    checkCuda(cudaFreeHost(left_receive_buffer));
-    checkCuda(cudaFreeHost(right_send_buffer));
-    checkCuda(cudaFreeHost(right_receive_buffer));
+    checkCuda(cudaFreeHost(l_send_buffer));
+    checkCuda(cudaFreeHost(l_recv_buffer));
+    checkCuda(cudaFreeHost(r_send_buffer));
+    checkCuda(cudaFreeHost(r_recv_buffer));
 
     checkCuda(cudaDeviceReset());
 
-    free(u_old);
-    free(u_new);
+    free(h_un);
+    free(h_u);
 
 	return 0;
 }

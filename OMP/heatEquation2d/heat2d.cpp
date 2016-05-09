@@ -113,7 +113,7 @@ void Call_CPU_Jacobi2d(REAL *u,REAL *un, const unsigned int max_iters,
   // Using (i,j) = [i+N*j] indexes
   unsigned int i, j, k, o, n, s, e, w;
 
-  for(unsigned int iterations = 1; iterations < max_iters; iterations++) 
+  for(unsigned int iterations = 0; iterations < max_iters; iterations++) 
   {
     for (j = 0; j < ny; j++) {
       for (i = 0; i < nx; i++) {
@@ -137,7 +137,7 @@ void Call_CPU_Jacobi2d_v2(REAL *u, REAL *un, const unsigned int max_iters,
   // Using (i,j,k) = [i+N*j+M*N*k] indexes
   unsigned int i, j, k, o, n, s, e, w;
 
-  for(unsigned int iterations = 1; iterations < max_iters; iterations++) 
+  for(unsigned int iterations = 0; iterations < max_iters; iterations++) 
   {
     for (j = 0; j < ny; j++) {
       for (i = 0; i < nx; i++) {
@@ -169,7 +169,7 @@ void Call_OMP_Jacobi2d(REAL *u,REAL *un, const unsigned int max_iters,
 
   #pragma omp parallel default(shared) 
   {
-    for(unsigned int iterations = 1; iterations < max_iters; iterations++) 
+    for(unsigned int iterations = 0; iterations < max_iters; iterations++) 
     {
       #pragma omp for schedule(static)
       for (j = 0; j < ny; j++) {
@@ -181,7 +181,7 @@ void Call_OMP_Jacobi2d(REAL *u,REAL *un, const unsigned int max_iters,
           e = (j==ny-1) ? o:o+1;  // node(j,i+1,k)     |
           w = (j==0)    ? o:o-1;  // node(j,i-1,k)     s
 
-          un[o] = u[o] + kx*(u[e]-2*u[o]+u[w]) + ky*(u[n]-2*u[o]+u[s]);
+          un[o] = u[o] + kx*(u[e]-2.0*u[o]+u[w]) + ky*(u[n]-2.0*u[o]+u[s]);
         }
       }
       #pragma omp single
@@ -200,7 +200,7 @@ void Call_OMP_Jacobi2d_v2(REAL *u, REAL *un, const unsigned int max_iters,
 
 	#pragma omp parallel default(shared) 
   {
-		for(unsigned int iterations = 1; iterations < max_iters; iterations++) 
+		for(unsigned int iterations = 0; iterations < max_iters; iterations++) 
     {
 			#pragma omp for schedule(static)
 			for (j = 0; j < ny; j++) {
@@ -213,7 +213,7 @@ void Call_OMP_Jacobi2d_v2(REAL *u, REAL *un, const unsigned int max_iters,
           w = o-1;    // node(j,i-1)     s
 
           if (i>0 && i<nx-1 && j>0 && j<ny-1)
-            un[o] = u[o] + kx*(u[e]-2*u[o]+u[w]) + ky*(u[n]-2*u[o]+u[s]);
+            un[o] = u[o] + kx*(u[e]-2.0*u[o]+u[w]) + ky*(u[n]-2.0*u[o]+u[s]);
           else
             un[o] = u[o];
 				}
@@ -254,7 +254,7 @@ void CalcError(REAL *u, const REAL t, const REAL dx, const REAL dy, unsigned int
   }
   
   printf("L1 norm                                       :  %e\n", dx*dy*l1_norm);
-  printf("L2 norm                                       :  %e\n", l2_norm);
+  printf("L2 norm                                       :  %e\n", sqrt(dx*dy*l2_norm));
   printf("Linf norm                                     :  %e\n", linf_norm);
 }
 

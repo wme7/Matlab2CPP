@@ -23,10 +23,10 @@ inline void __checkCuda(cudaError_t error, const char *file, const int line)
 /******************************/
 void InitializeMPI(int *argc, char ***argv, int *rank, int *numberOfProcesses)
 {
-	MPI_CHECK(MPI_Init(argc, argv));
-	MPI_CHECK(MPI_Comm_rank(MPI_COMM_WORLD, rank));
-	MPI_CHECK(MPI_Comm_size(MPI_COMM_WORLD, numberOfProcesses));
-	MPI_CHECK(MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN));
+	CHECK_MPI(MPI_Init(argc, argv));
+	CHECK_MPI(MPI_Comm_rank(MPI_COMM_WORLD, rank));
+	CHECK_MPI(MPI_Comm_size(MPI_COMM_WORLD, numberOfProcesses));
+	CHECK_MPI(MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN));
 }
 
 /****************************/
@@ -34,7 +34,7 @@ void InitializeMPI(int *argc, char ***argv, int *rank, int *numberOfProcesses)
 /****************************/
 void Finalize()
 {
-	MPI_CHECK(MPI_Finalize());
+	CHECK_MPI(MPI_Finalize());
 }
 
 /**********************/
@@ -64,13 +64,13 @@ void init(REAL *u, const REAL dx, const REAL dy, const REAL dz, unsigned int nx,
 /******************************/
 void init_subdomain(REAL *h_s_u, REAL *h_u, unsigned int nx, unsigned int ny, unsigned int _nz, unsigned int rank)
 {
-	int idx3d = 0, idxsd = 0; unsigned int i, j, k, xy=nx*ny;
+	int idx3d = 0, idxsd = 0; unsigned int i, j, k, xy=(nx+2)*(ny+2);
 
-	for (k = 0; k < _nz; k++) {
-		for (j = 0; j < ny; j++) {
-			for (i = 0; i < nx; i++) {
-				idx3d = i + nx*j + xy*(k+rank*_nz);
-				idxsd = i + nx*j + xy*k;
+	for (k = 0; k < _nz+2; k++) {
+		for (j = 0; j < ny+2; j++) {
+			for (i = 0; i < nx+2; i++) {
+				idx3d = i + (nx+2)*j + xy*(k+rank*_nz);
+				idxsd = i + (nx+2)*j + xy*k;
 				h_s_u[idxsd] = h_u[idx3d];
 			}
 		}
@@ -80,15 +80,15 @@ void init_subdomain(REAL *h_s_u, REAL *h_u, unsigned int nx, unsigned int ny, un
 /*******************************************/
 /* Merges sub-domains into a larger domain */
 /*******************************************/
-void merge_domains(REAL *h_s_u, REAL *h_u, unsigned int nx, unsigned int ny, unsigned int _nz, unsigned int rank)
+void merge_subdomain(REAL *h_s_u, REAL *h_u, unsigned int nx, unsigned int ny, unsigned int _nz, const int rank)
 {
-	int idx3d = 0, idxsd = 0; unsigned int i, j, k, xy=nx*ny;
+	int idx3d = 0, idxsd = 0; unsigned int i, j, k, xy=(nx+2)*(ny+2);
 
-	for (k = 1; k < _nz-1; k++) {
-		for (j = 1; j < ny-1; j++) {
-			for (i = 1; i < nx-1; i++) {
-				idx3d = i + nx*j + xy*(k+rank*_nz);
-				idxsd = i + nx*j + xy*k;
+	for (k = 1; k < _nz+1; k++) {
+		for (j = 1; j < ny+1; j++) {
+			for (i = 1; i < nx+1; i++) {
+				idx3d = i + (nx+2)*j + xy*(k+rank*_nz);
+				idxsd = i + (nx+2)*j + xy*k;
 				h_u[idx3d] = h_s_u[idxsd];
 			}
 		}
@@ -210,7 +210,7 @@ float CalcGflops(float computeTimeInSeconds, unsigned int iterations, unsigned i
 /********************************/
 void CalcError(REAL *u, const REAL t, const REAL dx, const REAL dy, const REAL dz, unsigned int nx, unsigned int ny, unsigned int nz)
 {
-  unsigned int i, j, k, o, xy;
+  unsigned int i, j, k, xy;
   xy = nx*ny;
 
   REAL err = 0., l1_norm = 0., l2_norm = 0., linf_norm = 0.;
@@ -219,7 +219,7 @@ void CalcError(REAL *u, const REAL t, const REAL dx, const REAL dy, const REAL d
     for (j = 0; j < ny; j++) {
       for (i = 0; i < nx; i++) {
 
-        err = (exp(-3*M_PI*M_PI*t)*SINE_DISTRIBUTION(i,j,k,dx,dy,dz)) - u[i+nx*j+xy*k];
+        err = exp(-3*M_PI*M_PI*t)*SINE_DISTRIBUTION(i,j,k,dx,dy,dz) - u[i+nx*j+xy*k];
         
         l1_norm += fabs(err);
         l2_norm += err*err;
@@ -228,9 +228,9 @@ void CalcError(REAL *u, const REAL t, const REAL dx, const REAL dy, const REAL d
     }
   }
   
-  printf("L1 norm                                       :  %e\n", dx*dy*dz*l1_norm);
-  printf("L2 norm                                       :  %e\n", l2_norm);
-  printf("Linf norm                                     :  %e\n", linf_norm);
+	printf("L1 norm                                      :  %e\n", dx*dy*dz*l1_norm);
+	printf("L2 norm                                      :  %e\n", l2_norm);
+	printf("Linf norm                                    :  %e\n", linf_norm);
 }
 
 /*****************************/

@@ -73,7 +73,7 @@ void Call_CPU_Jacobi1d(REAL *u,REAL *un, const unsigned int max_iters, const REA
   // Using (i) = [i] index
   unsigned int i, r, o, l;
 
-  for(unsigned int iterations = 1; iterations < max_iters; iterations++) 
+  for(unsigned int iterations = 0; iterations < max_iters; iterations++) 
   {
     for (i = 0; i < nx; i++) {
 
@@ -92,7 +92,7 @@ void Call_CPU_Jacobi1d_v2(REAL *u, REAL *un, const unsigned int max_iters, const
   // Using (i) = [i] index
   unsigned int i, r, o, l;
 
-  for(unsigned int iterations = 1; iterations < max_iters; iterations++) 
+  for(unsigned int iterations = 0; iterations < max_iters; iterations++) 
   {
     for (i = 0; i < nx; i++) {
 
@@ -119,7 +119,7 @@ void Call_OMP_Jacobi1d(REAL *u,REAL *un, const unsigned int max_iters, const REA
 
   #pragma omp parallel default(shared) 
   {
-    for(unsigned int iterations = 1; iterations < max_iters; iterations++) 
+    for(unsigned int iterations = 0; iterations < max_iters; iterations++) 
     {
       #pragma omp for schedule(static)
         for (i = 0; i < nx; i++) {
@@ -144,11 +144,11 @@ void Call_OMP_Jacobi1d_v2(REAL *u, REAL *un, const unsigned int max_iters, const
   unsigned int i, r, o, l;
 
 	#pragma omp parallel default(shared) 
-  {
-		for(unsigned int iterations = 1; iterations < max_iters; iterations++) 
-    {
-			#pragma omp for schedule(static)
-				for (i = 0; i < nx; i++) {
+  	{
+	for(unsigned int iterations = 0; iterations < max_iters; iterations++) 
+    		{
+		#pragma omp for schedule(static)
+		for (i = 0; i < nx; i++) {
 
           o = i;    // node( i )
           r = o+1;  // node(i+1)  l---o---r
@@ -194,7 +194,7 @@ void CalcError(REAL *u, const REAL t, const REAL dx, unsigned int nx)
   }
   
   printf("L1 norm                                       :  %e\n", dx*l1_norm);
-  printf("L2 norm                                       :  %e\n", l2_norm);
+  printf("L2 norm                                       :  %e\n", sqrt(dx*l2_norm));
   printf("Linf norm                                     :  %e\n", linf_norm);
 }
 

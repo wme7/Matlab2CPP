@@ -2,8 +2,9 @@
 
 #define checkCuda(error) __checkCuda(error, __FILE__, __LINE__)
 
-__constant__ REAL d_c0;
-__constant__ REAL d_c1;
+__constant__ REAL d_kx;
+__constant__ REAL d_ky;
+__constant__ REAL d_kz;
 
 ////////////////////////////////////////////////////////////////////////////////
 // A method for checking error in CUDA calls
@@ -102,8 +103,6 @@ __global__ void heat3D_async(REAL * __restrict u_new, REAL * __restrict u_old, c
     k = max(kstart,k);
 
 	unsigned int k_off = j_off*(Ny+2);
-
-
     unsigned int idx = i + j*j_off + k*k_off;
 
     if (i > 0 && i < Nx+1 && j > 0 && j < Ny+1)
@@ -111,7 +110,11 @@ __global__ void heat3D_async(REAL * __restrict u_new, REAL * __restrict u_old, c
 		south_west = u_old[idx-k_off];
     	center = u_old[idx];
     	north_east = u_old[idx+k_off];
-    	u_new[idx] = d_c1 * center + d_c0 * (u_old[idx-1] + u_old[idx+1] + u_old[idx-j_off] + u_old[idx+j_off] + south_west + north_east);
+    	//u_new[idx] = d_c1 * center + d_c0 * (u_old[idx-1] + u_old[idx+1] + u_old[idx-j_off] + u_old[idx+j_off] + south_west + north_east);
+    	u_new[idx] = center 
+    		+ d_kx*(u_old[idx-1] - 2*center +  u_old[idx+1])
+    		+ d_ky*(u_old[idx-j_off] - 2*center + u_old[idx+j_off]) 
+    		+ d_kz*(south_west - 2*center + north_east);
 
     	for(unsigned int z = 1; z < loop_z; z++)
     	{
@@ -124,7 +127,11 @@ __global__ void heat3D_async(REAL * __restrict u_new, REAL * __restrict u_old, c
 				south_west = center;
 				center = north_east;
 				north_east = u_old[idx+k_off];
-				u_new[idx] = (d_c1 * center) + d_c0 * (u_old[idx-1] + u_old[idx+1] + u_old[idx-j_off] + u_old[idx+j_off] + south_west + north_east);
+				//u_new[idx] = (d_c1 * center) + d_c0 * (u_old[idx-1] + u_old[idx+1] + u_old[idx-j_off] + u_old[idx+j_off] + south_west + north_east);
+				u_new[idx] = center 
+    				+ d_kx*(u_old[idx-1] - 2*center +  u_old[idx+1])
+					+ d_ky*(u_old[idx-j_off] - 2*center + u_old[idx+j_off]) 
+					+ d_kz*(south_west - 2*center + north_east);
 	  		}
     	}
     }
@@ -144,7 +151,6 @@ __global__ void heat3D(REAL * __restrict u_new, REAL * __restrict u_old, const u
     unsigned int k = 1+threadIdx.z + blockIdx.z * loop_z;
 
 	unsigned int k_off = j_off*(Ny+2);
-
     unsigned int idx = i + j*j_off + k*k_off;
 
     if (i > 0 && i < Nx+1 && j > 0 && j < Ny+1)
@@ -152,7 +158,11 @@ __global__ void heat3D(REAL * __restrict u_new, REAL * __restrict u_old, const u
 		south_west = u_old[idx-k_off];
     	center = u_old[idx];
     	north_east = u_old[idx+k_off];
-    	u_new[idx] = d_c1 * center + d_c0 * (u_old[idx-1] + u_old[idx+1] + u_old[idx-j_off] + u_old[idx+j_off] + south_west + north_east);
+    	//u_new[idx] = d_c1 * center + d_c0 * (u_old[idx-1] + u_old[idx+1] + u_old[idx-j_off] + u_old[idx+j_off] + south_west + north_east);
+    	u_new[idx] = center 
+			+ d_kx*(u_old[idx-1] - 2*center +  u_old[idx+1])
+			+ d_ky*(u_old[idx-j_off] - 2*center + u_old[idx+j_off]) 
+			+ d_kz*(south_west - 2*center + north_east);
 
     	for(unsigned int z = 1; z < loop_z; z++)
     	{
@@ -160,7 +170,11 @@ __global__ void heat3D(REAL * __restrict u_new, REAL * __restrict u_old, const u
     		south_west = center;
     		center = north_east;
     		north_east = u_old[idx+k_off];
-    		u_new[idx] = (d_c1 * center) + d_c0 * (u_old[idx-1] + u_old[idx+1] + u_old[idx-j_off] + u_old[idx+j_off] + south_west + north_east);
+    		//u_new[idx] = (d_c1 * center) + d_c0 * (u_old[idx-1] + u_old[idx+1] + u_old[idx-j_off] + u_old[idx+j_off] + south_west + north_east);
+    		u_new[idx] = center 
+				+ d_kx*(u_old[idx-1] - 2*center +  u_old[idx+1])
+				+ d_ky*(u_old[idx-j_off] - 2*center + u_old[idx+j_off]) 
+				+ d_kz*(south_west - 2*center + north_east);
     	}
     }
 }

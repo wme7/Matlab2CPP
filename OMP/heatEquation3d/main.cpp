@@ -30,9 +30,9 @@ int main(int argc, char** argv)
   unsigned int tot_iters, R;
   REAL dx, dy, dz, dt, kx, ky, kz, tFinal;
 
-  dx = (REAL)L/Nx; // dx, cell size
-  dy = (REAL)W/Ny; // dy, cell size
-  dz = (REAL)H/Nz; // dz, cell size
+  dx = (REAL)L/(Nx-1); // dx, cell size
+  dy = (REAL)W/(Ny-1); // dy, cell size
+  dz = (REAL)H/(Nz-1); // dz, cell size
   dt = 1/(2*C*(1/dx/dx+1/dy/dy+1/dz/dz)); // dt, fix time step size
   kx = C*dt/(dx*dx); // numerical conductivity
   ky = C*dt/(dy*dy); // numerical conductivity
@@ -44,11 +44,11 @@ int main(int argc, char** argv)
   REAL *h_u, *h_un; 
   REAL *d_u, *d_un;
 
-  h_u  = (REAL*)malloc(sizeof(REAL)*(Nx+R)*(Ny+R)*(Nz+R));
-  h_un = (REAL*)malloc(sizeof(REAL)*(Nx+R)*(Ny+R)*(Nz+R));
+  h_u  = (REAL*)malloc(sizeof(REAL)*Nx*Ny*Nz);
+  h_un = (REAL*)malloc(sizeof(REAL)*Nx*Ny*Nz);
 
   // Set Domain Initial Condition and BCs
-  Call_Init(3,h_u,dx,dy,dz,Nx+R,Ny+R,Nz+R);
+  Call_Init(3,h_u,dx,dy,dz,Nx,Ny,Nz);
 
   // Request computer current time
   time_t t = clock();
@@ -57,22 +57,22 @@ int main(int argc, char** argv)
   switch (UseSolverNo) {
     case 1: {
       printf("Using CPU solver with Dirichlet BCs \n");
-      Call_CPU_Jacobi3d_v2(h_u,h_un,max_iters,kx,ky,kz,Nx+R,Ny+R,Nz+R);
+      Call_CPU_Jacobi3d_v2(h_u,h_un,max_iters,kx,ky,kz,Nx,Ny,Nz);
       break;
     }
     case 2: {
       printf("Using CPU solver with Neumann BCs \n");
-      Call_CPU_Jacobi3d(h_u,h_un,max_iters,kx,ky,kz,Nx+R,Ny+R,Nz+R);
+      Call_CPU_Jacobi3d(h_u,h_un,max_iters,kx,ky,kz,Nx,Ny,Nz);
       break;
     }
     case 3: {
       printf("Using OMP solver with Dirichlet BCs \n");
-      Call_OMP_Jacobi3d_v2(h_u,h_un,max_iters,kx,ky,kz,Nx+R,Ny+R,Nz+R);
+      Call_OMP_Jacobi3d_v2(h_u,h_un,max_iters,kx,ky,kz,Nx,Ny,Nz);
       break;
     }
     case 4: {
       printf("Using OMP solver with Neumann BCs \n");
-      Call_OMP_Jacobi3d(h_u,h_un,max_iters,kx,ky,kz,Nx+R,Ny+R,Nz+R);
+      Call_OMP_Jacobi3d(h_u,h_un,max_iters,kx,ky,kz,Nx,Ny,Nz);
       break;
     }
   }
@@ -80,14 +80,14 @@ int main(int argc, char** argv)
   t += clock(); REAL tCPU = (REAL)t/CLOCKS_PER_SEC;
 
   // uncomment to print solution to terminal
-  if (DEBUG) print3D(h_un,Nx+R,Ny+R,Nz+R);
+  if (DEBUG) print3D(h_un,Nx,Ny,Nz);
 
-  float gflops = CalcGflops(tCPU, max_iters, Nx+R, Ny+R, Nz+R);
-  PrintSummary("HeatEq3D (7-pt)", "none", tCPU, gflops, tFinal, max_iters, Nx+R, Ny+R, Nz+R);
-  CalcError(h_un, tFinal, dx, dy, dz, Nx+R, Ny+R, Nz+R);
+  float gflops = CalcGflops(tCPU, max_iters, Nx, Ny, Nz);
+  PrintSummary("HeatEq3D (7-pt)", "none", tCPU, gflops, tFinal, max_iters, Nx, Ny, Nz);
+  CalcError(h_un, tFinal, dx, dy, dz, Nx, Ny, Nz);
 
   // Write solution to file
-  if (WRITE) Save3D(h_un,Nx+R,Ny+R,Nz+R); 
+  if (WRITE) Save3D(h_un,Nx,Ny,Nz); 
 
   // Free memory on host and device
   free(h_u);

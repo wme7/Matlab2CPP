@@ -26,17 +26,21 @@
 /*************/
 /* Constants */
 /*************/
-#define DEBUG 
-#define WRITE 0
-#define k_loop 16
-#define FLOPS 8.0
-#define swap(T, a, b) do { T tmp = a; a = b; b = tmp; } while (0)
+#define DEBUG 1 	// Display all error messages
+#define WRITE 1 	// Write solution to file
+#define k_loop 16 	//
+#define FLOPS 8.0 	//
+#define ROOT 0 		// define root process
+
+/**********/
+/* Macros */
+/**********/
+#define SWAP(T, a, b) do { T tmp = a; a = b; b = tmp; } while (0)
 #define SINE_DISTRIBUTION(i, j, k, dx, dy, dz) sin(M_PI*i*dx)*sin(M_PI*j*dy)*sin(M_PI*k*dz)
-#define ROOT 0 // define root process
-#define MPI_CHECK(call) \
+#define CHECK_MPI(call) \
     if((call) != MPI_SUCCESS) { printf("MPI error calling \""#call"\"\n"); exit(-1); }
 
-/* use floats of dobles */
+/* Use floats of dobles */
 #define USE_FLOAT false // set false to use real
 #if USE_FLOAT
 	#define REAL	float
@@ -46,7 +50,7 @@
 	#define MPI_CUSTOM_REAL MPI_DOUBLE
 #endif
 
-/* enviroment variable */
+/* Enviroment variable */
 #define USE_OMPI true // set false for MVAPICH2
 #if USE_FLOAT
 	#define ENV_LOCAL_RANK "OMPI_COMM_WORLD_LOCAL_RANK"
@@ -62,7 +66,7 @@ void Finalize();
 
 void init(REAL *u, const REAL dx, const REAL dy, const REAL dz, unsigned int nx, unsigned int ny, unsigned int nz);
 void init_subdomain(REAL *h_s_u, REAL *h_u, unsigned int nx, unsigned int ny, unsigned int nz, unsigned int rank);
-void merge_domains(REAL *h_s_u, REAL *h_u, unsigned int nx, unsigned int ny, unsigned int _nz, unsigned int rank);
+void merge_subdomain(REAL *h_s_u, REAL *h_u, unsigned int nx, unsigned int ny, unsigned int _nz, const int rank);
 float CalcGflops(float computeTimeInSeconds, unsigned int iterations, unsigned int nx, unsigned int ny, unsigned int nz);
 void PrintSummary(const char* kernelName, const char* optimization, double outputTimeInSeconds, double cpuTimeInSeconds, double hostToDeviceTimeInSeconds, double deviceToHostTimeInSeconds, float gflops, const int computeIterations, const int nx, const int ny, const int nz);
 void CalcError(REAL *u, const REAL t, const REAL dx, const REAL dy, const REAL dz, unsigned int nx, unsigned int ny, unsigned int nz);

@@ -3,79 +3,80 @@ rm *.o *.txt *.run
 g++ -O3 -c main.cpp -fopenmp -lgomp 
 g++ -O3 -c heat2d.cpp -fopenmp -lgomp
 g++ main.o heat2d.o -O3 -fopenmp -lgomp -o heat2d.run
-Final time: 0.0610352
+Final time: 0.0657462
+Using OMP solver with Dirichlet BCs 
+=========================== HeatEq2D (7-pt) =======================
+Optimization                                 :  none
+Kernel time ex. data transfers               :  0.000000 seconds
+===================================================================
+Total effective GFLOPs                       :  inf
+===================================================================
+2D Grid Size                                 :  40 x 40 
+Iterations                                   :  100
+Final Time                                   :  0.0657462
+===================================================================
+L1 norm                                       :  3.276884e-03
+L2 norm                                       :  2.023534e-03
+Linf norm                                     :  2.020253e-03
+Final time: 0.0160231
+Using OMP solver with Dirichlet BCs 
+=========================== HeatEq2D (7-pt) =======================
+Optimization                                 :  none
+Kernel time ex. data transfers               :  0.040000 seconds
+===================================================================
+Total effective GFLOPs                       :  0.128000
+===================================================================
+2D Grid Size                                 :  80 x 80 
+Iterations                                   :  100
+Final Time                                   :  0.0160231
+===================================================================
+L1 norm                                       :  3.351806e-03
+L2 norm                                       :  2.068118e-03
+Linf norm                                     :  2.067294e-03
+Final time: 0.00395554
+Using OMP solver with Dirichlet BCs 
+=========================== HeatEq2D (7-pt) =======================
+Optimization                                 :  none
+Kernel time ex. data transfers               :  0.010000 seconds
+===================================================================
+Total effective GFLOPs                       :  2.048000
+===================================================================
+2D Grid Size                                 :  160 x 160 
+Iterations                                   :  100
+Final Time                                   :  0.00395554
+===================================================================
+L1 norm                                       :  1.138908e-03
+L2 norm                                       :  7.026007e-04
+Linf norm                                     :  7.026719e-04
+Final time: 0.000982695
 Using OMP solver with Dirichlet BCs 
 =========================== HeatEq2D (7-pt) =======================
 Optimization                                 :  none
 Kernel time ex. data transfers               :  0.110000 seconds
 ===================================================================
-Total effective GFLOPs                       :  1.210255
+Total effective GFLOPs                       :  0.744727
 ===================================================================
-2D Grid Size                                 :  129 x 129 
-Iterations                                   :  1000
-Final Time                                   :  0.0610352
+2D Grid Size                                 :  320 x 320 
+Iterations                                   :  100
+Final Time                                   :  0.000982695
 ===================================================================
-L1 norm                                       :  3.504069e-04
-L2 norm                                       :  1.915139e-04
-Linf norm                                     :  2.163018e-04
-Final time: 0.0152588
+L1 norm                                       :  3.043464e-04
+L2 norm                                       :  1.877691e-04
+Linf norm                                     :  1.879840e-04
+Final time: 0.000244905
 Using OMP solver with Dirichlet BCs 
 =========================== HeatEq2D (7-pt) =======================
 Optimization                                 :  none
-Kernel time ex. data transfers               :  0.350000 seconds
+Kernel time ex. data transfers               :  0.390000 seconds
 ===================================================================
-Total effective GFLOPs                       :  1.509691
+Total effective GFLOPs                       :  0.840205
 ===================================================================
-2D Grid Size                                 :  257 x 257 
-Iterations                                   :  1000
-Final Time                                   :  0.0152588
+2D Grid Size                                 :  640 x 640 
+Iterations                                   :  100
+Final Time                                   :  0.000244905
 ===================================================================
-L1 norm                                       :  3.253506e-04
-L2 norm                                       :  6.601231e-04
-Linf norm                                     :  2.009187e-04
-Final time: 0.0038147
-Using OMP solver with Dirichlet BCs 
-=========================== HeatEq2D (7-pt) =======================
-Optimization                                 :  none
-Kernel time ex. data transfers               :  1.240000 seconds
-===================================================================
-Total effective GFLOPs                       :  1.697865
-===================================================================
-2D Grid Size                                 :  513 x 513 
-Iterations                                   :  1000
-Final Time                                   :  0.0038147
-===================================================================
-L1 norm                                       :  1.111304e-04
-L2 norm                                       :  3.081215e-04
-Linf norm                                     :  6.890353e-05
-Final time: 0.000953674
-Using OMP solver with Dirichlet BCs 
-=========================== HeatEq2D (7-pt) =======================
-Optimization                                 :  none
-Kernel time ex. data transfers               :  5.140000 seconds
-===================================================================
-Total effective GFLOPs                       :  1.635214
-===================================================================
-2D Grid Size                                 :  1025 x 1025 
-Iterations                                   :  1000
-Final Time                                   :  0.000953674
-===================================================================
-L1 norm                                       :  3.019494e-05
-L2 norm                                       :  9.163439e-05
-Linf norm                                     :  2.474888e-05
-Final time: 0.000238419
-Using OMP solver with Dirichlet BCs 
-=========================== HeatEq2D (7-pt) =======================
-Optimization                                 :  none
-Kernel time ex. data transfers               :  20.840000 seconds
-===================================================================
-Total effective GFLOPs                       :  1.611670
-===================================================================
-2D Grid Size                                 :  2049 x 2049 
-Iterations                                   :  1000
-Final Time                                   :  0.000238419
-===================================================================
-L1 norm                                       :  8.924562e-06
-L2 norm                                       :  5.078689e-05
-Linf norm                                     :  4.283452e-05
-[manuel@nhri heatEquation2d]$
+L1 norm                                       :  7.790118e-05
+L2 norm                                       :  4.805440e-05
+Linf norm                                     :  4.821558e-05
+[manuel@nhri heatEquation2d]$ 
+

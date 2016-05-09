@@ -110,7 +110,7 @@ void Call_CPU_Jacobi3d(REAL *u,REAL *un, const unsigned int max_iters,
   unsigned int i, j, k, o, n, s, e, w, t, b, xy;
   xy=nx*ny;
 
-  for(unsigned int iterations = 1; iterations < max_iters; iterations++) 
+  for(unsigned int iterations = 0; iterations < max_iters; iterations++) 
   {
     for (j = 0; j < ny; j++) {
       for (i = 0; i < nx; i++) {
@@ -140,7 +140,7 @@ void Call_CPU_Jacobi3d_v2(REAL *u, REAL *un, const unsigned int max_iters,
   unsigned int i, j, k, o, n, s, e, w, t, b, xy;
   xy = nx*ny;
 
-  for(unsigned int iterations = 1; iterations < max_iters; iterations++) 
+  for(unsigned int iterations = 0; iterations < max_iters; iterations++) 
   {
     for (k = 0; k < nz; k++) {
       for (j = 0; j < ny; j++) {
@@ -178,7 +178,7 @@ void Call_OMP_Jacobi3d(REAL *u,REAL *un, const unsigned int max_iters,
 
   #pragma omp parallel default(shared) 
   {
-    for(unsigned int iterations = 1; iterations < max_iters; iterations++) 
+    for(unsigned int iterations = 0; iterations < max_iters; iterations++) 
     {
       #pragma omp for schedule(static)
       for (k = 0; k < nz; k++) {
@@ -215,7 +215,7 @@ void Call_OMP_Jacobi3d_v2(REAL *u, REAL *un, const unsigned int max_iters,
 
 	#pragma omp parallel default(shared) 
   {
-		for(unsigned int iterations = 1; iterations < max_iters; iterations++) 
+		for(unsigned int iterations = 0; iterations < max_iters; iterations++) 
     {
 			#pragma omp for schedule(static)
 			for (k = 0; k < nz; k++) {
@@ -277,7 +277,7 @@ void CalcError(REAL *u, const REAL t, const REAL dx, const REAL dy, const REAL d
   }
   
   printf("L1 norm                                       :  %e\n", dx*dy*dz*l1_norm);
-  printf("L2 norm                                       :  %e\n", l2_norm);
+  printf("L2 norm                                       :  %e\n", sqrt(dx*dy*dz*l2_norm));
   printf("Linf norm                                     :  %e\n", linf_norm);
 }
 
