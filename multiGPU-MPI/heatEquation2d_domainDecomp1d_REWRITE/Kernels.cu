@@ -56,7 +56,6 @@ __global__ void copy_gc_to_br(REAL * __restrict u_news, REAL * __restrict gc_une
 	k = (1-p)*(_Nz+1);
 
 	unsigned int idx2d = j * gc_pitch + i;
-
 	unsigned int idx3d = i + j * pitch + k*(Ny+2)*pitch;
 
 	if( i < Nx+2 && j < Ny+2 && k < _Nz+2 )

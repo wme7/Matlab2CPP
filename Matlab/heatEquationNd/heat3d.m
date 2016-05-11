@@ -13,9 +13,9 @@ clear; %close all; clc;
 %% Parameters
 D = 1.0; % alpha
 tFinal = 0.1;	% End time
-L = 1; nx = 10; dx = L/(nx-1); 
-W = 1; ny = 10; dy = W/(ny-1);
-H = 1; nz = 20; dz = H/(nz-1);
+L = 1; nx = 32; dx = L/(nx-1); 
+W = 1; ny = 32; dy = W/(ny-1);
+H = 1; nz = 32; dz = H/(nz-1);
 Dx = D/dx^2; Dy = D/dy^2; Dz = D/dz^2;
 
 % Build Numerical Mesh

@@ -51,11 +51,12 @@ int main(int argc, char** argv)
   const REAL h = L/(Nx+1);
   const REAL dt = h*h/6.0;
   const REAL beta = dt/(h*h);
-  const REAL c0 = beta;
-  const REAL c1 = (1-6*beta);
+  const REAL kx = beta;
+  const REAL ky = beta;
+  const REAL kz = beta;
 
   // Copy constants to Constant Memory on the GPUs
-  CopyToConstantMemory(c0, c1);
+  CopyToConstantMemory(kx, ky, kz);
 
   // Decompose along the z-axis
   const int _Nz = Nz/numberOfProcesses;
@@ -251,7 +252,7 @@ int main(int argc, char** argv)
 #if defined(DEBUG) || defined(_DEBUG)
   if (rank == 0)
   {
-    cpu_heat3D(u_new, u_old, c0, c1, max_iters, Nx, Ny, Nz);
+    cpu_heat3D(u_new, u_old, kx, ky, kz, max_iters, Nx, Ny, Nz);
   }
 #endif
 

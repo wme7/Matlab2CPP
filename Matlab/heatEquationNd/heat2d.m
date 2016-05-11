@@ -67,11 +67,11 @@ end
 %% % Post Process 
 % Final Plot
 subplot(121); h=surf(x,y,u); axis(region);
-title('heat3d, Cell Averages','interpreter','latex','FontSize',18);
+title('heat2d, Cell Averages','interpreter','latex','FontSize',18);
 xlabel('$\it{x}$','interpreter','latex','FontSize',14);
 ylabel('$\it{y}$','interpreter','latex','FontSize',14);
 subplot(122); q=surf(x,y,uE); axis(region);
-title('heat3d, Exact solution','interpreter','latex','FontSize',18);
+title('heat2d, Exact solution','interpreter','latex','FontSize',18);
 xlabel('$\it{x}$','interpreter','latex','FontSize',14);
 ylabel('$\it{y}$','interpreter','latex','FontSize',14);
 

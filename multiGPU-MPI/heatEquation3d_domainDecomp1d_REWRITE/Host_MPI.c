@@ -21,7 +21,7 @@ inline void __checkCuda(cudaError_t error, const char *file, const int line)
 ////////////////////////////////////////////////////////////////////////////////
 // Kernel for computing 3D Heat equation on the CPU
 ////////////////////////////////////////////////////////////////////////////////
-void cpu_heat3D(REAL * __restrict__ u_new, REAL * __restrict__ u_old, const REAL c0, const REAL c1, const unsigned int max_iters, const unsigned int Nx, const unsigned int Ny, const unsigned int Nz)
+void cpu_heat3D(REAL * __restrict__ u_new, REAL * __restrict__ u_old, const REAL c0, const REAL c1, const REAL c2, const unsigned int max_iters, const unsigned int Nx, const unsigned int Ny, const unsigned int Nz)
 {
 	unsigned int j_off = (Nx+2);
 	unsigned int k_off = j_off * (Ny+2);
@@ -38,7 +38,9 @@ void cpu_heat3D(REAL * __restrict__ u_new, REAL * __restrict__ u_old, const REAL
 					for (unsigned int i = 1; i < (Nx+2)-1; i++)
 					{
 						unsigned int idx = i + j*j_off + k*k_off;
-						u_new[idx] =  c1 * u_old[idx] + c0 * (u_old[idx-1] + u_old[idx+1] + u_old[idx-j_off] + u_old[idx+j_off] + u_old[idx-k_off] + u_old[idx+k_off]);
+						u_new[idx] =  u_old[idx] + c0 * (u_old[idx-1] - 2*u_old[idx] + u_old[idx+1])
+												 + c1 * (u_old[idx-j_off] - 2*u_old[idx] + u_old[idx+j_off]) 
+												 + c2 * (u_old[idx-k_off] - 2*u_old[idx] + u_old[idx+k_off]);
 					}
 				}
 			}

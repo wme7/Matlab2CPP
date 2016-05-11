@@ -126,7 +126,7 @@ void Call_Init(float **u0){
 /* LAPLACE ITERATION FUNCTION - CPU */
 /************************************/
 
-void Laplace2d_CPU(float *u,float *un){
+void Laplace3d_CPU(float *u,float *un){
   // Using (i,j) = [i+N*j+M*N*k] indexes
   int i, j, k, o, n, s, e, w, t, b; 
   const int XY=NX*NY;
@@ -152,7 +152,7 @@ void Laplace2d_CPU(float *u,float *un){
 /* LAPLACE ITERATION FUNCTION - GPU - WITHOUT SHARED MEMORY */
 /************************************************************/
 
-__global__ void Laplace2d_GPU1(const float * __restrict__ u, float * __restrict__ un){
+__global__ void Laplace3d_GPU1(const float * __restrict__ u, float * __restrict__ un){
   int o, n, s, e, w, t, b;  
   const int XY=NX*NY;
   // Threads id
@@ -189,7 +189,7 @@ void Call_GPU_Laplace(float **d_u, float **d_un) {
     // set threads and blocks ( naive approach )
     dimGrid =dim3(DIVIDE_INTO(NX,NI),DIVIDE_INTO(NY,NJ),DIVIDE_INTO(NZ,NK)); 
     dimBlock=dim3(NI,NJ,NK);
-    Laplace2d_GPU1<<<dimGrid,dimBlock>>>(*d_u,*d_un);
+    Laplace3d_GPU1<<<dimGrid,dimBlock>>>(*d_u,*d_un);
     if (DEBUG) printf("CUDA error (Laplace GPU %d) %s\n",
 		      USE_GPU,cudaGetErrorString(cudaPeekAtLastError()));
   }

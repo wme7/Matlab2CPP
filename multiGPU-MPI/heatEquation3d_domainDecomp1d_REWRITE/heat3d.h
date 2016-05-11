@@ -26,7 +26,7 @@
 /*************/
 /* Constants */
 /*************/
-#define DEBUG
+#define DEBUG 0
 #define RADIUS 1
 #define k_loop 16
 #define FLOPS 8.0
@@ -65,7 +65,7 @@ void Finalize();
 void init(REAL *u_old, REAL *u_new, const REAL h, unsigned int Nx, unsigned int Ny, unsigned int Nz);
 void init_subdomain(REAL *h_s_uold, REAL *h_uold, unsigned int Nx, unsigned int Ny, unsigned int Nz, unsigned int i);
 void merge_domains(REAL *h_s_Uold, REAL *h_Uold, int Nx, int Ny, int _Nz, const int i);
-void cpu_heat3D(REAL * __restrict__ u_new, REAL * __restrict__ u_old, const REAL c0, const REAL c1, const unsigned int max_iters, const unsigned int Nx, const unsigned int Ny, const unsigned int Nz);
+void cpu_heat3D(REAL * __restrict__ u_new, REAL * __restrict__ u_old, const REAL c0, const REAL c1, const REAL c2, const unsigned int max_iters, const unsigned int Nx, const unsigned int Ny, const unsigned int Nz);
 float CalcGflops(float computeTimeInSeconds, unsigned int iterations, unsigned int nx, unsigned int ny, unsigned int nz);
 void PrintSummary(const char* kernelName, const char* optimization, double computeTimeInSeconds, double hostToDeviceTimeInSeconds, double deviceToHostTimeInSeconds, float gflops, const int computeIterations, const int nx);
 void CalcError(REAL *uOld, REAL *uNew, const REAL t, const REAL h, unsigned int nx, unsigned int ny, unsigned int nz);
@@ -81,7 +81,7 @@ extern "C"
 	int DeviceScan();
 	void AssignDevices(int rank);
 	void ECCCheck(int rank);
-	void CopyToConstantMemory(const REAL c0, const REAL c1);
+	void CopyToConstantMemory(const REAL kx, const REAL ky, const REAL kz);
 	int getBlock(int n, int block);
 	void ComputeInnerPoints(dim3 thread_blocks, dim3 threads_per_block, REAL* d_s_Unews, REAL* d_s_Uolds, int pitch, unsigned int Nx, unsigned int Ny, unsigned int _Nz);
 	void ComputeInnerPointsAsync(dim3 thread_blocks_halo, dim3 threads_per_block, cudaStream_t aStream, REAL* d_s_Unews, REAL* d_s_Uolds,

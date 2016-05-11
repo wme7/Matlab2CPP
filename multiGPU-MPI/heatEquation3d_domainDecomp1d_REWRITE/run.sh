@@ -1,3 +1,3 @@
 #make clean
 #make
-mpirun -np 1 heat3d_async.run 256 256 512 10000 64 4 1
+mpirun -np 2 heat3d_async.run 128 128 128 5000 64 4 1
