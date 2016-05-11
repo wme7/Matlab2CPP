@@ -22,7 +22,7 @@ int main() {
 
   // Solver Loop 
   for (int step=0; step < NO_STEPS; step+=2) {
-    if (step%100==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
+    if (step%10000==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
 
     // Compute stencil
     Call_Laplace(&d_u,&d_un); // 1sr iter

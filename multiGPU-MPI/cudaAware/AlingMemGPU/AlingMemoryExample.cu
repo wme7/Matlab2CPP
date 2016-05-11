@@ -21,14 +21,14 @@ __global__ void kernel(float *A, float *B, int devWidth)
 	int o = i+devWidth*j;
 
 	B[o] = A[o];
-	// B[o] = o; // uncomment to print the indexes
+	//B[o] = o; // uncomment to print the indexes
 }
  
 void print(float *A, int nx, int ny)
 {
 	for (int j = 0; j < ny; j++) {
 		for (int i = 0; i < nx; i++) {
-			printf("%3.0f ",A[i+nx*j]);
+			printf("%4.0f ",A[i+nx*j]);
 		}
 		printf("\n");
 	}

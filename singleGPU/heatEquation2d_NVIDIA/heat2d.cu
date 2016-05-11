@@ -195,9 +195,9 @@ __global__ void Laplace2d_v2(const float * __restrict__ u, float * __restrict__ 
 void Call_Laplace(float **d_u, float **d_un) {
   // Produce one iteration of the laplace operator
   dim3 threads(NI,NJ);
-  dim3 blocks(NX/NI,NY/NJ); 
-  Laplace2d<<<blocks,threads>>>(*d_u,*d_un);
-  //Laplace2d_v2<<<blocks,threads>>>(*d_u,*d_un);
+  dim3 blocks((NX+NI-1)/NI,(NY+NJ-1)/NJ); 
+  //Laplace2d<<<blocks,threads>>>(*d_u,*d_un);
+  Laplace2d_v2<<<blocks,threads>>>(*d_u,*d_un);
   if (DEBUG) printf("CUDA error (Jacobi_Method) %s\n",cudaGetErrorString(cudaPeekAtLastError()));
   cudaError_t Error = cudaDeviceSynchronize();
   if (DEBUG) printf("CUDA error (Jacobi_Method Synchronize) %s\n",cudaGetErrorString(Error));

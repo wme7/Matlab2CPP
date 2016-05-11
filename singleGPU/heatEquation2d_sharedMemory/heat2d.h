@@ -29,9 +29,9 @@
 // set USE_GPU to 3 to use GPU kernel - with shared mem_v3 (with halo regions)
 // set USE_GPU to 4 to use GPU kernel - with shared mem_v4 (with halo regions v2)
 // set USE_GPU to 5 to use GPU kernel - with shared mem_v5 (128x4 tile for coalescing optimization)
-// set USE_GPU to 6 to use GPU kernel - with texture memory
+// set USE_GPU to 6 to use GPU kernel - with texture memory (doesn't work :[ )
 #define USE_CPU 0  // set 1 to select the CPU kernel 
-#define USE_GPU 4  // select the No. of GPU kernel to use
+#define USE_GPU 6  // select the No. of GPU kernel to use
 
 /* Declare functions */
 void Manage_Memory(int phase, float **h_u, float **h_un, float **d_u, float **d_un);

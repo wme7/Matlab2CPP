@@ -13,6 +13,4 @@ GPU_CORE: heat2d.cu
 	nvcc -O3 -arch compute_35 -c heat2d.cu
 
 clean:
-	rm *.o
-	rm *.txt
-	rm *.run
+	rm *.o *.txt *.run

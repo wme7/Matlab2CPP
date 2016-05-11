@@ -4,8 +4,8 @@
 #include <math.h>
 
 #define DEBUG 0 // Display all error messages
-#define NX 512 // number of cells in the x-direction
-#define NY 512 // number of cells in the y-direction
+#define NX 1024 // number of cells in the x-direction
+#define NY 1024 // number of cells in the y-direction
 #define L 10.0 // domain length
 #define W 10.0 // domain width
 #define C 1.0 // c, material conductivity. Uniform assumption.
