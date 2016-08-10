@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<session version="2" name="test.0.nvprof" hscale="2.132168976544986E-6">
+<expert><columnprops></columnprops>
+</expert>
+<analysis guided="true"></analysis>
+<expertsystem current="INTRO"><visited><stage name="INTRO"/></visited></expertsystem>
+<vruler width="200"/>
+<hruler>
+</hruler>
+<timelinestate>
+<timeline pathname="heat3d_async.run 256 256 256 100 64 4 1" kind="PROCESS" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="heat3d_async.run 256 256 256 100 64 4 1/1488336832" kind="THREAD" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="heat3d_async.run 256 256 256 100 64 4 1/1488336832/Runtime API" kind="RUNTIME" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="heat3d_async.run 256 256 256 100 64 4 1/1488336832/Driver API" kind="DRIVER" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="heat3d_async.run 256 256 256 100 64 4 1/Profiling Overhead" kind="OVERHEADS" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c" kind="DEVICE" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1" kind="CONTEXT" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/MemCpy (HtoD)" kind="MEMCPY_HTOD" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/MemCpy (DtoH)" kind="MEMCPY_DTOH" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/Compute" kind="KERNELS" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/Compute/heat3D_async(double*, double*, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int)" kind="KERNEL" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/Compute/copy_br_to_gc(double*, double*, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int)" kind="KERNEL" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/Compute/copy_gc_to_br(double*, double*, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int)" kind="KERNEL" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/Streams" kind="STREAMS" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/Streams/7" kind="STREAM" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/Streams/13" kind="STREAM" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/Streams/14" kind="STREAM" containerstate="OPEN_ALL" filtered="false"/>
+<timeline pathname="Tesla K20c/1/Streams/16" kind="STREAM" containerstate="OPEN_ALL" filtered="false"/>
+</timelinestate>
+<timelinepdm>
+<pdm></pdm>
+</timelinepdm>
+<analysispdm>
+</analysispdm>
+</session>

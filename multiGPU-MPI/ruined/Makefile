@@ -6,6 +6,7 @@ NVCC = $(shell which nvcc)
 MPICXX = $(shell which mpicxx)
 
 # MPI and CUDA paths
+
 CUDA_INSTALL_PATH := /usr/local/cuda-7.5
 MPI_INSTALL_PATH := /home/manuel/openMPI
 
