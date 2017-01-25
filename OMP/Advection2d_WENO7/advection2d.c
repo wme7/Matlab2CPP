@@ -420,7 +420,7 @@ void Compute_Adv_y(
   // Indexes
   unsigned int i, j;
   
-  #pragma omp parallel shared (u,Lu) private (j,f1mmm,f1mm,f1m,f1,f1p,f1pp,f1ppp,g1mmm,g1mm,g1m,g1,g1p,g1pp,g1ppp,fu,fu_old,fp,fp_old)  
+  #pragma omp parallel shared (u,Lu) private (i,f1mmm,f1mm,f1m,f1,f1p,f1pp,f1ppp,g1mmm,g1mm,g1m,g1,g1p,g1pp,g1ppp,fu,fu_old,fp,fp_old)  
   {
     #pragma omp for
     // Nonlinear Advection

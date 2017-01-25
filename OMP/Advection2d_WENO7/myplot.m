@@ -6,7 +6,7 @@ u = reshape(result,nx,ny);
 
 % Plots results
 figure; imagesc(y,x,u); colorbar;
-xlabel('x'); ylabel('y'), axis equal; axis tight; title('SSP-RK3+WENO5 pressure field')
+xlabel('x'); ylabel('y'), axis equal; axis tight; title('SSP-RK3+WENO7 pressure field')
 print('acoustics2d','-dpng')
 
 % Export Result for Paraview
