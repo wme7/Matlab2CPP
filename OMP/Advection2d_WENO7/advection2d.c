@@ -341,8 +341,11 @@ void Compute_Adv_x(
   // Indexes
   unsigned int i, j, o;
   
-  // Nonlinear Advection
-  for (j = 3; j < ny-4; j++) {
+  #pragma omp parallel shared (u,Lu) private (j,f1mmm,f1mm,f1m,f1,f1p,f1pp,f1ppp,g1mmm,g1mm,g1m,g1,g1p,g1pp,g1ppp,fu,fu_old,fp,fp_old)  
+  {
+    #pragma omp for
+    // Nonlinear Advection
+    for (j = 3; j < ny-4; j++) {
         
       o=nx*j;
       // Old resulst arrays
@@ -393,6 +396,7 @@ void Compute_Adv_x(
         g1   = g1p;   // node(i+1)
         g1p  = g1pp;  // node(i+2)
         g1pp = g1ppp; // node(i+3)
+      }
     }
   }
 }
@@ -416,57 +420,61 @@ void Compute_Adv_y(
   // Indexes
   unsigned int i, j;
   
-  // Nonlinear Advection
-  for (i = 3; i < nx-4; i++) {
+  #pragma omp parallel shared (u,Lu) private (j,f1mmm,f1mm,f1m,f1,f1p,f1pp,f1ppp,g1mmm,g1mm,g1m,g1,g1p,g1pp,g1ppp,fu,fu_old,fp,fp_old)  
+  {
+    #pragma omp for
+    // Nonlinear Advection
+    for (i = 3; i < nx-4; i++) {
    
-    // Old resulst arrays
-    fu_old=0;
-    fp_old=0;
-    
-    f1mmm= 0.5*(alpha*u[i+nx*0]+alpha*u[i+nx*0]); // node(i-3)
-    f1mm = 0.5*(alpha*u[i+nx*1]+alpha*u[i+nx*1]); // node(i-2)
-    f1m  = 0.5*(alpha*u[i+nx*2]+alpha*u[i+nx*2]); // node(i-1)
-    f1   = 0.5*(alpha*u[i+nx*3]+alpha*u[i+nx*3]); // node( i )  immm--imm--im--i--ip--ipp--ippp
-    f1p  = 0.5*(alpha*u[i+nx*4]+alpha*u[i+nx*4]); // node(i+1)
-    f1pp = 0.5*(alpha*u[i+nx*5]+alpha*u[i+nx*5]); // node(i+2)
-    
-    g1mmm= 0.5*(alpha*u[i+nx*1]-alpha*u[i+nx*1]); // node(i-2)    
-    g1mm = 0.5*(alpha*u[i+nx*2]-alpha*u[i+nx*2]); // node(i-1)
-    g1m  = 0.5*(alpha*u[i+nx*3]-alpha*u[i+nx*3]); // node( i )      imm--im--i--ip--ipp--ippp-ipppp
-    g1   = 0.5*(alpha*u[i+nx*4]-alpha*u[i+nx*4]); // node(i+1)
-    g1p  = 0.5*(alpha*u[i+nx*5]-alpha*u[i+nx*5]); // node(i+2)
-    g1pp = 0.5*(alpha*u[i+nx*6]-alpha*u[i+nx*6]); // node(i+3)
+      // Old resulst arrays
+      fu_old=0;
+      fp_old=0;
+      
+      f1mmm= 0.5*(alpha*u[i+nx*0]+alpha*u[i+nx*0]); // node(i-3)
+      f1mm = 0.5*(alpha*u[i+nx*1]+alpha*u[i+nx*1]); // node(i-2)
+      f1m  = 0.5*(alpha*u[i+nx*2]+alpha*u[i+nx*2]); // node(i-1)
+      f1   = 0.5*(alpha*u[i+nx*3]+alpha*u[i+nx*3]); // node( i )  immm--imm--im--i--ip--ipp--ippp
+      f1p  = 0.5*(alpha*u[i+nx*4]+alpha*u[i+nx*4]); // node(i+1)
+      f1pp = 0.5*(alpha*u[i+nx*5]+alpha*u[i+nx*5]); // node(i+2)
+      
+      g1mmm= 0.5*(alpha*u[i+nx*1]-alpha*u[i+nx*1]); // node(i-2)    
+      g1mm = 0.5*(alpha*u[i+nx*2]-alpha*u[i+nx*2]); // node(i-1)
+      g1m  = 0.5*(alpha*u[i+nx*3]-alpha*u[i+nx*3]); // node( i )      imm--im--i--ip--ipp--ippp-ipppp
+      g1   = 0.5*(alpha*u[i+nx*4]-alpha*u[i+nx*4]); // node(i+1)
+      g1p  = 0.5*(alpha*u[i+nx*5]-alpha*u[i+nx*5]); // node(i+2)
+      g1pp = 0.5*(alpha*u[i+nx*6]-alpha*u[i+nx*6]); // node(i+3)
+          
+      for (j = 3; j < ny-4; j++) {
+          
+        // Compute and split fluxes
+        f1ppp= 0.5*(alpha*u[i+nx*(j+3)]+alpha*u[i+nx*(j+3)]); // node(i+3)
         
-    for (j = 3; j < ny-4; j++) {
+        g1ppp= 0.5*(alpha*u[i+nx*(j+4)]-alpha*u[i+nx*(j+4)]); // node(i+4)
         
-      // Compute and split fluxes
-      f1ppp= 0.5*(alpha*u[i+nx*(j+3)]+alpha*u[i+nx*(j+3)]); // node(i+3)
-      
-      g1ppp= 0.5*(alpha*u[i+nx*(j+4)]-alpha*u[i+nx*(j+4)]); // node(i+4)
-      
-      // Reconstruct
-      fu = WENO7_Reconstruct1d(f1mmm,f1mm,f1m,f1,f1p,f1pp,f1ppp,g1mmm,g1mm,g1m,g1,g1p,g1pp,g1ppp);
-      //fu = FDM_7_Reconstruct1d(f1mmm,f1mm,f1m,f1,f1p,f1pp,f1ppp,g1mmm,g1mm,g1m,g1,g1p,g1pp,g1ppp);
-      
-      // Compute Lv = -dG/dy
-      Lu[i+nx*j]-=(fu-fu_old)/dy; // -dudy
-      
-      // Save old results
-      fu_old=fu;
-      
-      f1mmm= f1mm;  // node(i-3)
-      f1mm = f1m;   // node(i-2)
-      f1m  = f1;    // node(i-1)
-      f1   = f1p;   // node( i )    immm--imm--im--i--ip--ipp--ippp
-      f1p  = f1pp;  // node(i+1)
-      f1pp = f1ppp; // node(i+2)
-      
-      g1mmm= g1mm;  // node(i-2)     
-      g1mm = g1m;   // node(i-1)
-      g1m  = g1;    // node( i )    imm--im--i--ip--ipp--ippp-ipppp
-      g1   = g1p;   // node(i+1)
-      g1p  = g1pp;  // node(i+2)
-      g1pp = g1ppp; // node(i+3)
+        // Reconstruct
+        fu = WENO7_Reconstruct1d(f1mmm,f1mm,f1m,f1,f1p,f1pp,f1ppp,g1mmm,g1mm,g1m,g1,g1p,g1pp,g1ppp);
+        //fu = FDM_7_Reconstruct1d(f1mmm,f1mm,f1m,f1,f1p,f1pp,f1ppp,g1mmm,g1mm,g1m,g1,g1p,g1pp,g1ppp);
+        
+        // Compute Lv = -dG/dy
+        Lu[i+nx*j]-=(fu-fu_old)/dy; // -dudy
+        
+        // Save old results
+        fu_old=fu;
+        
+        f1mmm= f1mm;  // node(i-3)
+        f1mm = f1m;   // node(i-2)
+        f1m  = f1;    // node(i-1)
+        f1   = f1p;   // node( i )    immm--imm--im--i--ip--ipp--ippp
+        f1p  = f1pp;  // node(i+1)
+        f1pp = f1ppp; // node(i+2)
+        
+        g1mmm= g1mm;  // node(i-2)     
+        g1mm = g1m;   // node(i-1)
+        g1m  = g1;    // node( i )    imm--im--i--ip--ipp--ippp-ipppp
+        g1   = g1p;   // node(i+1)
+        g1p  = g1pp;  // node(i+2)
+        g1pp = g1ppp; // node(i+3)
+      }
     }
   }
 }

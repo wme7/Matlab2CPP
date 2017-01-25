@@ -11,6 +11,10 @@
 
 int main(int argc, char** argv){
     
+    // Set number of threads 
+    omp_set_num_threads(8);
+
+    // Input variables 
     REAL alpha, dt, dx, dy;
     unsigned int Nx, Ny, max_iter, blockX, blockY;
 
