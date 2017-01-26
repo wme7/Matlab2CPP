@@ -552,7 +552,7 @@ void Compute_sspRK(
 /******************/
 /* COMPUTE GFLOPS */
 /******************/
-float CalcGflops(float computeTimeInSeconds, unsigned int iterations, unsigned int nx, unsigned int ny)
+float CalcGflops(REAL computeTimeInSeconds, unsigned int iterations, unsigned int nx, unsigned int ny)
 {
     return iterations*(double)((nx*ny) * 1e-9 * FLOPS)/computeTimeInSeconds;
 }

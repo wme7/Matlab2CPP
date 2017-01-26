@@ -61,7 +61,7 @@ void Compute_Adv_x(REAL *u, REAL *Lu, const REAL alpha, const unsigned int nx, c
 void Compute_Adv_y(REAL *u, REAL *Lu, const REAL alpha, const unsigned int nx, const unsigned int ny, const REAL dy);
 void Compute_sspRK(REAL *u, const REAL *uo, const REAL *Lu, const int step, const unsigned int nx, const unsigned int ny, const REAL dt);
 
-float CalcGflops(float computeTimeInSeconds, unsigned int iterations, unsigned int nx, unsigned int ny);
+float CalcGflops(REAL computeTimeInSeconds, unsigned int iterations, unsigned int nx, unsigned int ny);
 void PrintSummary(const char* kernelName, const char* optimization, REAL computeTimeInSeconds, float gflops, REAL outputTimeInSeconds,const int computeIterations, const int nx, const int ny);
 void CalcError(REAL *u, const REAL t, const REAL dx, const REAL dy, unsigned int nx, unsigned int ny);
 

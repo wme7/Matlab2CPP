@@ -7,7 +7,6 @@
 //
 
 #include "advection2d.h"
-#include <time.h>
 
 int main(int argc, char** argv){
     
@@ -61,7 +60,7 @@ int main(int argc, char** argv){
     Call_Init2d(1,h_u,dx,dy,Nx,Ny);
     
     // Request computer current time
-    time_t t = clock();
+    double start = omp_get_wtime();
     
     // Call WENO-RK solver
     for(unsigned int iterations = 0; iterations < max_iter; iterations++)
@@ -90,10 +89,11 @@ int main(int argc, char** argv){
     }
     
     // Measure and Report computation time
-    t += clock(); REAL tCPU = (REAL)t/CLOCKS_PER_SEC; printf("Computation took %lf seconds\n", tCPU);
+    double stop = omp_get_wtime(); 
+    double tOMP = stop-start; printf("Computation took %lf seconds\n",tOMP);
     
-    float gflops = CalcGflops(tCPU, max_iter, Nx, Ny);
-    PrintSummary(argv[0], "none", tCPU, gflops, tFinal, max_iter, Nx, Ny);
+    float gflops = CalcGflops(tOMP, max_iter, Nx, Ny);
+    PrintSummary(argv[0], "none", tOMP, gflops, tFinal, max_iter, Nx, Ny);
     //CalcError(h_u, tFinal, dx, dy, Nx, Ny);
 
     // Write solution to file
