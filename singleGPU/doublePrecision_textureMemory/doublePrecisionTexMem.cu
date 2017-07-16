@@ -121,8 +121,8 @@ int main(int argc, char *argv[]){
     myTextureData.addressMode[1] = cudaAddressModeClamp;
     myTextureData.filterMode = cudaFilterModePoint;
     myTextureData.normalized = false;  
-
     cudaBindTexture2D(0, myTextureData, dbuf, cudaCreateChannelDesc(32,32,0,0, cudaChannelFormatKindSigned), Xdim, Ydim, pitch_bytes ); 
+
 
     int pitch = pitch_bytes/sizeof(double);
 

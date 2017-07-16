@@ -19,8 +19,8 @@
 #define PI 3.1415926535897932f
 #define COMPARE 0 // compare to CPU solution
 
-#define BLOCK_SIZE_X 32
-#define BLOCK_SIZE_Y 32
+#define BLOCK_SIZE_X 128
+#define BLOCK_SIZE_Y 2
 
 #define DIVIDE_INTO(x,y) (((x)+(y)-1)/(y)) // define No. of blocks/warps
 
@@ -154,14 +154,10 @@ int main() {
   Set_IC(h_T_old);
 
   // --- device temperature distribution
-  float *d_T;		cudaMalloc((void**)&d_T,	NX*NY*sizeof(float));
-  float *d_T_old;	cudaMalloc((void**)&d_T_old,	NX*NY*sizeof(float));
   float *d_T_tex;	cudaMalloc((void**)&d_T_tex,	NX*NY*sizeof(float));
   float *d_T_old_tex;	cudaMalloc((void**)&d_T_old_tex,NX*NY*sizeof(float));
 
-  cudaMemcpy(d_T,	h_T,	 NX*NY*sizeof(float), cudaMemcpyHostToDevice);
   cudaMemcpy(d_T_tex,	h_T,	 NX*NY*sizeof(float), cudaMemcpyHostToDevice);
-  cudaMemcpy(d_T_old,	d_T,	 NX*NY*sizeof(float), cudaMemcpyDeviceToDevice);
   cudaMemcpy(d_T_old_tex,d_T_tex,NX*NY*sizeof(float), cudaMemcpyDeviceToDevice);
 
   /*********************************************/
@@ -195,9 +191,9 @@ int main() {
   // --- Jacobi iterations on the device - texture case
   printf("Using GPU-Texture solver\n");
   for (int step=0; step < NO_STEPS; step+=2) {
-    if (step%100000==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
-    Laplace2d_texture<<<dimGrid, dimBlock>>>(d_T_old_tex,0); cudaDeviceSynchronize();
-    Laplace2d_texture<<<dimGrid, dimBlock>>>( d_T_tex , 1 ); cudaDeviceSynchronize();
+    if (step%10000==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
+    Laplace2d_texture<<<dimGrid, dimBlock>>>(d_T_old_tex,0); //cudaDeviceSynchronize();
+    Laplace2d_texture<<<dimGrid, dimBlock>>>( d_T_tex , 1 ); //cudaDeviceSynchronize();
   }	
     // --- Copy results from device to host
   cudaMemcpy(h_T_GPU_tex_result,d_T_tex,NX*NY*sizeof(float),cudaMemcpyDeviceToHost);
@@ -219,7 +215,7 @@ int main() {
   // --- Jacobi iterations on the host
   printf("Using CPU solver\n");
   for (int step=0; step < NO_STEPS; step+=2) {
-    if (step%100000==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
+    if (step%10000==0) printf("Step %d of %d\n",step,(int)NO_STEPS);
     Laplace2d(h_T,h_T_old); 
     Laplace2d(h_T_old,h_T);
   }

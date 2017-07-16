@@ -17,7 +17,7 @@
 #define KY (C*DT/(DY*DY)) // numerical conductivity
 #define NO_STEPS (TEND/DT) // No. of time steps
 #define PI 3.1415926535897932f
-#define NI 128 // block size in the i-direction
+#define NI 64 // block size in the i-direction
 #define NJ 4 // block size in the j-direction
 #define RADIUS 1 // cells width of the hallo region
 #define I2D(n,i,j) ((i)+(n)*(j)) // transfrom a 2D array index pair into linear index memory
@@ -31,7 +31,7 @@
 // set USE_GPU to 5 to use GPU kernel - with shared mem_v5 (128x4 tile for coalescing optimization)
 // set USE_GPU to 6 to use GPU kernel - with texture memory (doesn't work :[ )
 #define USE_CPU 0  // set 1 to select the CPU kernel 
-#define USE_GPU 5  // select the No. of GPU kernel to use
+#define USE_GPU 1  // select the No. of GPU kernel to use
 
 /* Declare functions */
 void Manage_Memory(int phase, float **h_u, float **h_un, float **d_u, float **d_un);
